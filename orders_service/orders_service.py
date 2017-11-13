@@ -1,12 +1,9 @@
 
 # python modules
 from flask import Flask, jsonify, request
-from tinydb import TinyDB, Query
 import json
 
 application = Flask(__name__)
-orders_db = TinyDB('/Users/amadeus/Documents/rsoi_services/warehouse/orders_db.json')
-Order = Query()
 
 # local modules
 import orders_lib

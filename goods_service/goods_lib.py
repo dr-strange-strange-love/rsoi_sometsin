@@ -1,6 +1,19 @@
 
-from goods_service import goods_db, Good
+from tinydb import TinyDB, Query
 from tinydb.operations import add, subtract
+
+goods_db = TinyDB('/Users/amadeus/Documents/rsoi_services/warehouse/goods_db.json')
+Good = Query()
+
+def debug_start(): # instead of using classes
+    global goods_db
+    goods_db.close()
+    goods_db = TinyDB('/Users/amadeus/Documents/rsoi_services/warehouse_mock/goods_db.json')
+
+def debug_finish(): # instead of using classes
+    global goods_db
+    goods_db.close()
+
 
 def get_goods_list(page=0, size=20):
     """ Gets chunked list of goods """

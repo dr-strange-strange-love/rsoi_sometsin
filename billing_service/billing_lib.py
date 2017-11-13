@@ -1,6 +1,19 @@
 
-from billing_service import billing_db, Bill
+from tinydb import TinyDB, Query
 from tinydb.operations import set as st
+
+billing_db = TinyDB('/Users/amadeus/Documents/rsoi_services/warehouse/billing_db.json')
+Bill = Query()
+
+def debug_start(): # instead of using classes
+    global billing_db
+    billing_db.close()
+    billing_db = TinyDB('/Users/amadeus/Documents/rsoi_services/warehouse_mock/billing_db.json')
+
+def debug_finish(): # instead of using classes
+    global billing_db
+    billing_db.close()
+
 
 def get_billing_info_by_id(billing_id):
     return billing_db.get(doc_id = billing_id)
@@ -16,13 +29,11 @@ def create_billing(price):
 def update_bill(billing_id, summ, complete=False):
     can_complete = False
     bill = billing_db.get(doc_id = billing_id)
-    print(bill)
     if bill['order complete']:
         return {'err_msg': 'order complete, cant perform any operation'}
 
     if (bill['total_price']-bill['paid']) <= summ:
         can_complete = True
-        print(can_complete)
 
     if complete and can_complete:
         billing_db.update(st('paid', bill['paid']+summ), doc_ids = [billing_id])

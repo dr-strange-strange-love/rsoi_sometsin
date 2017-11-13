@@ -1,12 +1,9 @@
 
 # python modules
 from flask import Flask, jsonify, request
-from tinydb import TinyDB, Query
 import json
 
 application = Flask(__name__)
-billing_db = TinyDB('/Users/amadeus/Documents/rsoi_services/warehouse/billing_db.json')
-Bill = Query()
 
 # local modules
 import billing_lib
