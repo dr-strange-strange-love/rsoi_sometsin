@@ -1,6 +1,19 @@
 
-from orders_service import orders_db, Order
+from tinydb import TinyDB, Query
 from tinydb.operations import set as st
+
+orders_db = TinyDB('/Users/amadeus/Documents/rsoi_services/warehouse/orders_db.json')
+Order = Query()
+
+def debug_start(): # instead of using classes
+    global orders_db
+    orders_db.close()
+    orders_db = TinyDB('/Users/amadeus/Documents/rsoi_services/warehouse_mock/orders_db.json')
+
+def debug_finish(): # instead of using classes
+    global orders_db
+    orders_db.close()
+
 
 def get_orders_info_by_user_id(user_id):
     user_orders = orders_db.search(Order.user == user_id)
