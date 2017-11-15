@@ -105,12 +105,12 @@ def protected():
 ''' --------------- Goods methods --------------- '''
 @application.route('/goods', methods = ['GET'])
 def goods_list():
-    try:
-        page = request.args.get('page')
-        size = request.args.get('size')
-    except:
-        page = 1
-        size = 20
+    page = request.args.get('page')
+    size = request.args.get('size')
+    if not page:
+        page = "1"
+    if not size:
+        size = "20"
 
     url = 'http://127.0.0.1:8001/goods'
     prms = {'page': page, 'size': size}
@@ -242,10 +242,10 @@ def delete_goods_from_order(user_id, order_id):
     r = requests.patch(url, json = prms)
     print(r.text)
 
-    return 'Goods removed successfully!'
+    return jsonify({'succ_msg': 'Goods removed successfully!'})
 
 @application.route('/user/<user_id>/order/<order_id>/billing', methods = ['PATCH'])
-def perform_billing():
+def perform_billing(user_id, order_id):
     billing_json = request.get_json(force=True)
     billing_dict = json.loads(billing_json)
     print(billing_dict)
@@ -262,7 +262,7 @@ def perform_billing():
         return jsonify(user_order)
 
     # step.2 - update bill (PATCH to billing_db)
-    url = 'http://127.0.0.1:8003/billing' + str(billing_id)
+    url = 'http://127.0.0.1:8003/billing/' + str(billing_id)
     payload = billing_dict
     prms = json.dumps(payload)
     r = requests.patch(url, json = prms)

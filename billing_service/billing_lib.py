@@ -43,7 +43,7 @@ def update_bill(billing_id, summ, complete=False):
     else:
         billing_db.update(st('paid', bill['paid']+summ), doc_ids = [billing_id])
 
-    return {}
+    return {'succ_msh': 'bill updated'}
 
 def clean_bill(billing_id, total):
     billing_db.update(st('total_price', total), doc_ids = [billing_id])
