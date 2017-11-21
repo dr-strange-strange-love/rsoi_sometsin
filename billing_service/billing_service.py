@@ -19,12 +19,12 @@ if application.debug is not True:
     application.logger.addHandler(handler)
 
 
-@application.route('/billing/<billing_id>', methods = ['GET', 'PATCH'])
-def billing_info_by_id(billing_id):
-    if request.method == 'GET':
+@application.route('/billing/<billing_id>', methods = ['GET', 'PATCH', 'DELETE'])
+def get_update_delete_bill(billing_id):
+    if request.method == 'GET': # get bill info
         billing_info = billing_lib.get_billing_info_by_id(int(billing_id))
         return jsonify(billing_info)
-    else:
+    elif request.method == 'PATCH': # clean or update bill
         billing_json = request.get_json(force=True)
         billing_dict = json.loads(billing_json)
         print(billing_dict)
@@ -35,24 +35,27 @@ def billing_info_by_id(billing_id):
             res = billing_lib.update_bill(int(billing_id), int(billing_dict['sum']), billing_dict['complete'])
 
         return jsonify(res)
+    else: # delete bill
+        res = billing_lib.delete_bill(int(billing_id))
+        return jsonify(res)
 
-@application.route('/billing/create', methods = ['POST'])
+@application.route('/billing', methods = ['POST'])
 def create_bill():
-    bill_json = request.get_json(force=True)
-    bill_dict = json.loads(bill_json)
+    billing_json = request.get_json(force=True)
+    billing_dict = json.loads(billing_json)
 
-    bill_id = billing_lib.create_billing(int(bill_dict['price']))
+    bill_id = billing_lib.create_billing(int(billing_dict['price']))
 
     return jsonify({'bill_id': bill_id})
 
 
 @application.route('/', methods = ['GET'])
 def start():
-    return 'Welcome!'
+    return jsonify({'succ_msg': 'Welcome!'}), 200
 
 @application.errorhandler(404)
 def page_not_found(e):
-    return 'Page not found', 404
+    return jsonify({'err_msg': 'Page not found'}), 404
 
 
 if __name__ == '__main__':

@@ -48,3 +48,7 @@ def update_bill(billing_id, summ, complete=False):
 def clean_bill(billing_id, total):
     billing_db.update(st('total_price', total), doc_ids = [billing_id])
     return {}
+
+def delete_bill(billing_id):
+    billing_db.remove(doc_ids = [billing_id])
+    return {}

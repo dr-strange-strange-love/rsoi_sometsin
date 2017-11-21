@@ -19,38 +19,41 @@ if application.debug is not True:
     application.logger.addHandler(handler)
 
 
-@application.route('/orders/<user_id>', methods = ['GET'])
-def orders_info_by_user_id(user_id):
-    user_orders_list = orders_lib.get_orders_info_by_user_id(user_id)
-    return jsonify(user_orders_list)
+# @application.route('/orders/<user_id>', methods = ['GET'])
+# @application.route('/order/<user_id>', methods = ['POST'])
+@application.route('/users/<user_id>/orders', methods = ['GET', 'POST'])
+def get_create_orders(user_id):
+    if request.method == 'GET': # get orders info
+        user_orders_list = orders_lib.get_orders_info_by_user_id(user_id)
+        return jsonify(user_orders_list)
+    else: # create order
+        order_json = request.get_json(force=True)
+        order_dict = json.loads(order_json)
 
-@application.route('/<order_id>/<user_id>', methods = ['GET'])
-def order_info(order_id, user_id):
+        order_id = orders_lib.create_order(user_id, order_dict['goods_list'], order_dict['billing_id'])
+
+        return jsonify({'order_id': order_id})
+
+# @application.route('/<order_id>/<user_id>', methods = ['GET'])
+@application.route('/user/<user_id>/orders/<order_id>', methods = ['GET'])
+def order_info(user_id, order_id):
     user_order = orders_lib.get_order_info(int(order_id), user_id)
     return jsonify(user_order)
 
-@application.route('/order/<user_id>', methods = ['POST'])
-def create_order(user_id):
-    order_json = request.get_json(force=True)
-    order_dict = json.loads(order_json)
-
-    order_id = orders_lib.create_order(user_id, order_dict['goods_list'], order_dict['billing_id'])
-
-    return jsonify({'order_id': order_id})
-
-@application.route('/order/<order_id>/user/<user_id>/goods', methods = ['DELETE'])
-def delete_goods_from_order(order_id, user_id):
+# @application.route('/order/<order_id>/user/<user_id>/goods', methods = ['DELETE'])
+@application.route('/orders/<order_id>/goods', methods = ['DELETE'])
+def delete_goods_from_order(order_id):
     orders_lib.delete_goods(int(order_id))
-    return 'Goods removed successfully!'
+    return jsonify({'succ_msg': 'Goods removed successfully!'})
 
 
 @application.route('/', methods = ['GET'])
 def start():
-    return 'Welcome!'
+    return jsonify({'succ_msg': 'Welcome!'}), 200
 
 @application.errorhandler(404)
 def page_not_found(e):
-    return 'Page not found', 404
+    return jsonify({'err_msg': 'Page not found'}), 404
 
 
 if __name__ == '__main__':
