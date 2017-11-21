@@ -21,7 +21,7 @@ if application.debug is not True:
 
 # @application.route('/orders/<user_id>', methods = ['GET'])
 # @application.route('/order/<user_id>', methods = ['POST'])
-@application.route('/users/<user_id>/orders', methods = ['GET', 'POST'])
+@application.route('/user/<user_id>/orders', methods = ['GET', 'POST'])
 def get_create_orders(user_id):
     if request.method == 'GET': # get orders info
         user_orders_list = orders_lib.get_orders_info_by_user_id(user_id)

@@ -45,20 +45,28 @@ def goods_list():
     url = 'http://127.0.0.1:8001/goods'
     prms = {'page': page, 'size': size}
     hdrs = {'accept': 'application/json'}
-    r = requests.get(url, params = prms, headers = hdrs)
+    try:
+        r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
+    except (OSError, ReadTimeout) as err:
+        jsonify({'err_msg': 'goods service unavailable...'}), 503
     decoded_data = r.json()
 
-    return jsonify(decoded_data)
+    return jsonify(decoded_data), 200
 
 @application.route('/goods/<good_id>', methods = ['GET'])
 def good_info_by_id(good_id):
     url = 'http://127.0.0.1:8001/goods/{0}'.format(good_id)
     prms = {}
     hdrs = {'accept': 'application/json'}
-    r = requests.get(url, params = prms, headers = hdrs)
+    try:
+        r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
+    except (OSError, ReadTimeout) as err:
+        jsonify({'err_msg': 'goods service unavailable...'}), 503
     decoded_data = r.json()
+    if not decoded_data:
+        jsonify({'err_msg': 'good id doesnt exist'}), 400
 
-    return jsonify(decoded_data)
+    return jsonify(decoded_data), 200
 ''' --------------- --------------- '''
 
 
@@ -66,13 +74,16 @@ def good_info_by_id(good_id):
 @application.route('/user/<user_id>/orders', methods = ['GET', 'POST'])
 def get_create_order(user_id):
     if request.method == 'GET':
-        url = 'http://127.0.0.1:8002/users/{0}/orders'.format(user_id)
+        url = 'http://127.0.0.1:8002/user/{0}/orders'.format(user_id)
         prms = {}
         hdrs = {'accept': 'application/json'}
-        r = requests.get(url, params = prms, headers = hdrs)
+        try:
+            r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
+        except (OSError, ReadTimeout) as err:
+            jsonify({'err_msg': 'orders service unavailable...'}), 503
         decoded_data = r.json()
 
-        return jsonify(decoded_data)
+        return jsonify(decoded_data), 200
     else:
         order_json = request.get_json(force=True)
         goods_list = json.loads(order_json)
@@ -85,11 +96,11 @@ def get_create_order(user_id):
         prms = json.dumps(payload)
         try:
             r = requests.post(url, json = prms, timeout = 5)
-        except ReadTimeout as err:
-            return jsonify({'err_msg': 'goods service unavailable, cant proceed!'})
+        except (OSError, ReadTimeout) as err:
+            return jsonify({'err_msg': 'goods service unavailable...'}), 503
         price = r.json()
         if 'err_msg' in price:
-            return jsonify(price) #it's actually error dict
+            return jsonify(price), 400 #it's actually error dict
 
         # step.2 - create billing (POST to billing_db, returns billing_id)
         url = 'http://127.0.0.1:8003/billing'
@@ -105,18 +116,18 @@ def get_create_order(user_id):
             payload = order_dict
             prms = json.dumps(payload)
             r = requests.post(url, json = prms)
-            return jsonify({'err_msg': 'billing service unavailable, rollback!'})
+            return jsonify({'err_msg': 'billing service unavailable, rolling back...'}), 503
         bill = r.json()
 
         # step.3 - create order (POST to orders_db)
         url = 'http://127.0.0.1:8002/user/{0}/orders'.format(user_id)
         payload = {
-            'goods_list': order_list,
+            'goods_list': goods_list,
             'billing_id': bill['bill_id']
         }
         prms = json.dumps(payload)
         try:
-            r = requests.post(url, json = prms, timeout = 5)
+            r = requests.post(url, json = prms, timeout = 10)
         except (OSError, ReadTimeout) as err:
             # -step.1
             print('rollbacking2!')
@@ -128,10 +139,11 @@ def get_create_order(user_id):
             # -step.2
             url = 'http://127.0.0.1:8003/billing/' + str(bill['bill_id'])
             r = requests.delete(url)
-            return jsonify({'err_msg': 'orders service unavailable, rollback!'})
+            return jsonify({'err_msg': 'orders service unavailable, rolling back'}), 503
+        print(r.text)
         order = r.json()
 
-        return jsonify(order)
+        return jsonify(order), 200
 
 @application.route('/user/<user_id>/orders/<order_id>', methods = ['GET'])
 def order_info(user_id, order_id):
@@ -141,7 +153,10 @@ def order_info(user_id, order_id):
     url = 'http://127.0.0.1:8002/user/{0}/orders/{1}'.format(user_id, order_id)
     prms = {}
     hdrs = {'accept': 'application/json'}
-    r = requests.get(url, params = prms, headers = hdrs)
+    try:
+        r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
+    except (OSError, ReadTimeout) as err:
+        return jsonify({'err_msg': 'orders service unavailable...'}), 503
     user_order = r.json()
 
     try:
@@ -150,7 +165,7 @@ def order_info(user_id, order_id):
             goods_list.append(good)
         order_dict['goods'] = goods_list
     except:
-        return jsonify(user_order)
+        return jsonify(user_order), 400
 
     # step.2 - get billing data for that order (if can't - degrade)
     url = 'http://127.0.0.1:8003/billing/' + str(user_order['billing_id'])
@@ -163,7 +178,7 @@ def order_info(user_id, order_id):
     except (OSError, ReadTimeout) as err:
         order_dict['billing_info'] = 'billing service unavailable!'
 
-    return jsonify(order_dict)
+    return jsonify(order_dict), 200
 
 @application.route('/user/<user_id>/orders/<order_id>/goods', methods = ['DELETE'])
 def delete_goods_from_order(user_id, order_id):
@@ -171,21 +186,27 @@ def delete_goods_from_order(user_id, order_id):
     url = 'http://127.0.0.1:8002/user/{0}/orders/{1}'.format(user_id, order_id)
     prms = {}
     hdrs = {'accept': 'application/json'}
-    r = requests.get(url, params = prms, headers = hdrs)
+    try:
+        r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
+    except (OSError, ReadTimeout) as err:
+        return jsonify({'err_msg': 'orders service unavailable...'}), 503
     user_order = r.json()
     try:
         billing_id = user_order['billing_id']
         goods_list = user_order['goods']
         order_dict = {'goods_list': goods_list}
     except:
-        return jsonify(user_order)
+        return jsonify(user_order), 400
 
     # step.2 - increment left_in_stock (POST to goods_db)
     url = 'http://127.0.0.1:8001/goods'
     order_dict['operation'] = 'increment'
     payload = order_dict
     prms = json.dumps(payload)
-    r = requests.post(url, json = prms, timeout = 10)
+    try:
+        r = requests.post(url, json = prms, timeout = 10)
+    except (OSError, ReadTimeout) as err:
+        return jsonify({'err_msg': 'goods service unavailable...'}), 503
     print(r.text)
 
     # step.3 - reduce goods to [] (DELETE/POST to order_db)
@@ -203,7 +224,7 @@ def delete_goods_from_order(user_id, order_id):
     except ReadTimeout as err:
         aggregation_lib.reset_billing_total_q.put(url)
 
-    return jsonify({'succ_msg': 'Goods removed successfully!'})
+    return jsonify({'succ_msg': 'Goods removed successfully!'}), 200
 
 @application.route('/user/<user_id>/orders/<order_id>/billing', methods = ['PATCH'])
 def perform_billing(user_id, order_id):
@@ -215,12 +236,15 @@ def perform_billing(user_id, order_id):
     url = 'http://127.0.0.1:8002/user/{0}/orders/{1}'.format(user_id, order_id)
     prms = {}
     hdrs = {'accept': 'application/json'}
-    r = requests.get(url, params = prms, headers = hdrs)
+    try:
+        r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
+    except (OSError, ReadTimeout) as err:
+        return jsonify({'err_msg': 'orders service unavailable...'}), 503
     user_order = r.json()
     try:
         billing_id = user_order['billing_id']
     except:
-        return jsonify(user_order)
+        return jsonify(user_order), 400
 
     # step.2 - update bill (PATCH to billing_db)
     url = 'http://127.0.0.1:8003/billing/' + str(billing_id)
@@ -228,11 +252,11 @@ def perform_billing(user_id, order_id):
     prms = json.dumps(payload)
     try:
         r = requests.patch(url, json = prms, timeout = 10)
-    except ReadTimeout as err:
-        jsonify({'err_msg': 'server timed out'})
+    except (OSError, ReadTimeout) as err:
+        jsonify({'err_msg': 'server unavailable!'}), 503
     res = r.json()
 
-    return jsonify(res)
+    return jsonify(res), 200
 ''' --------------- --------------- '''
 
 
