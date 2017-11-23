@@ -2,7 +2,10 @@
 from tinydb import TinyDB, Query
 from tinydb.operations import set as st
 
-orders_db = TinyDB('/Users/amadeus/Documents/rsoi_services/warehouse/orders_db.json')
+try:
+    orders_db = TinyDB('/Users/amadeus/Documents/rsoi_services/warehouse/orders_db.json')
+except:
+    orders_db = TinyDB('/srv/www/rsoi_services/warehouse/orders_db.json')
 Order = Query()
 
 def debug_start(): # instead of using classes

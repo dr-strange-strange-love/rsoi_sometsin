@@ -12,7 +12,10 @@ import requests
 import aggregation_lib
 
 application = Flask(__name__)
-users_db = TinyDB('/Users/amadeus/Documents/rsoi_services/warehouse/users_db.json')
+try:
+    users_db = TinyDB('/Users/amadeus/Documents/rsoi_services/warehouse/users_db.json')
+except:
+    users_db = TinyDB('/srv/www/rsoi_services/warehouse/users_db.json')
 User = Query()
 
 login_manager = flask_login.LoginManager()

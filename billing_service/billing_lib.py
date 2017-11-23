@@ -2,7 +2,10 @@
 from tinydb import TinyDB, Query
 from tinydb.operations import set as st
 
-billing_db = TinyDB('/Users/amadeus/Documents/rsoi_services/warehouse/billing_db.json')
+try:
+    billing_db = TinyDB('/Users/amadeus/Documents/rsoi_services/warehouse/billing_db.json')
+except:
+    billing_db = TinyDB('/srv/www/rsoi_services/warehouse/billing_db.json')
 Bill = Query()
 
 def debug_start(): # instead of using classes
