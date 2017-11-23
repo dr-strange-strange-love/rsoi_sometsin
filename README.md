@@ -1,4 +1,4 @@
-1. Clone repo:
+1. Clone repo to /srv/www:
 ```
 $ git clone https://github.com/dr-strange-strange-love/rsoi_sometsin.git rsoi_services
 ```
@@ -46,4 +46,28 @@ $ coverage run -m goods_service.goods_test
 $ coverage run -m orders_service.orders_test
 $ coverage run -m billing_service.billing_test
 $ coverage report -m
+```
+
+6. Prepare configs:
+```
+$ cp rsoi_nginx.conf /etc/nginx/conf.d
+$ cp ./aggregaton_service/aggregation.service /etc/systemd/system
+$ cp ./goods_service/goods.service /etc/systemd/system
+$ cp ./orders_service/orders.service /etc/systemd/system
+$ cp ./billing_service/billing.service /etc/systemd/system
+```
+
+7. Launch services:
+```
+$ systemctl start/stop/restart/enable aggregation
+$ systemctl start/stop/restart/enable goods
+$ systemctl start/stop/restart/enable orders
+$ systemctl start/stop/restart/enable billing
+$ systemctl start/stop/restart/enable nginx
+```
+
+8. Check logs:
+```
+$ journalctl --unit aggregation/goods/orders/billing
+$ nano /var/log/nginx/error.log
 ```
