@@ -2,7 +2,10 @@
 from tinydb import TinyDB, Query
 from tinydb.operations import add, subtract
 
-goods_db = TinyDB('/Users/amadeus/Documents/rsoi_services/warehouse/goods_db.json')
+try:
+    goods_db = TinyDB('/Users/amadeus/Documents/rsoi_services/warehouse/goods_db.json')
+except:
+    goods_db = TinyDB('/srv/www/rsoi_services/warehouse/goods_db.json')
 Good = Query()
 
 def debug_start(): # instead of using classes
