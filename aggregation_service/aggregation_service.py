@@ -99,8 +99,8 @@ def get_create_order(user_id):
         except (OSError, ReadTimeout) as err:
             return jsonify({'err_msg': 'goods service unavailable...'}), 503
         price = r.json()
-        if 'err_msg' in price:
-            return jsonify(price), 400 #it's actually error dict
+        if r.status_code == 400:
+            return jsonify(price), 400
 
         # step.2 - create billing (POST to billing_db, returns billing_id)
         url = 'http://127.0.0.1:8003/billing'
