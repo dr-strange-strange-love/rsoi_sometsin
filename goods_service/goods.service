@@ -1,0 +1,13 @@
+[Unit]
+Description=Gunicorn instance to serve rsoi_goods_service
+After=network.target
+
+[Service]
+User=root
+Group=nginx
+WorkingDirectory=/srv/www/rsoi_services/goods_service
+Environment="PATH=/home/amadeus/anaconda3/envs/rsoi_env_36/bin"
+ExecStart=/home/amadeus/anaconda3/envs/rsoi_env_36/bin/gunicorn --workers 8 --timeout 120 --bind 127.0.0.1:8001 wsgi
+
+[Install]
+WantedBy=multi-user.target
