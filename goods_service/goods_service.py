@@ -38,7 +38,7 @@ def goods_list():
             try:
                 goods_lib.decrement_left_in_stock(goods_list)
             except:
-                return jsonify({'err_msg': 'Not enough items in stock'})
+                return jsonify({'err_msg': 'Not enough items in stock'}), 400
 
             # calculate price
             price = goods_lib.calculate_price(goods_list)
