@@ -51,7 +51,7 @@ $ coverage report -m
 6. Prepare configs:
 ```
 $ cp rsoi_nginx.conf /etc/nginx/conf.d
-$ cp ./aggregaton_service/aggregation.service /etc/systemd/system
+$ cp ./aggregation_service/aggregation.service /etc/systemd/system
 $ cp ./goods_service/goods.service /etc/systemd/system
 $ cp ./orders_service/orders.service /etc/systemd/system
 $ cp ./billing_service/billing.service /etc/systemd/system

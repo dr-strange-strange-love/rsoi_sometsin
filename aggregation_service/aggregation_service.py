@@ -1,6 +1,7 @@
 
 # python modules
 from flask import Flask, jsonify, request, render_template, redirect, url_for
+from flask_cors import CORS
 from requests.exceptions import ReadTimeout
 from threading import Thread
 from tinydb import TinyDB, Query
@@ -12,6 +13,7 @@ import requests
 import aggregation_lib
 
 application = Flask(__name__)
+CORS(application)
 try:
     users_db = TinyDB('/Users/amadeus/Documents/rsoi_services/warehouse/users_db.json')
 except:
@@ -50,6 +52,8 @@ def goods_list():
     hdrs = {'accept': 'application/json'}
     try:
         r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
+        if r.status_code == 500:
+            return jsonify({'err_msg': 'Internal server error!'}), 500
     except (OSError, ReadTimeout) as err:
         jsonify({'err_msg': 'goods service unavailable...'}), 503
     decoded_data = r.json()
@@ -89,7 +93,10 @@ def get_create_order(user_id):
         return jsonify(decoded_data), 200
     else:
         order_json = request.get_json(force=True)
-        goods_list = json.loads(order_json)
+        try:
+            goods_list = json.loads(order_json)
+        except TypeError as err:
+            goods_list = order_json
         order_dict = {'goods_list': goods_list}
 
         # step.1 - decrement left_in_stock and calculate price (POST to goods_db, returns price)
@@ -232,8 +239,10 @@ def delete_goods_from_order(user_id, order_id):
 @application.route('/user/<user_id>/orders/<order_id>/billing', methods = ['PATCH'])
 def perform_billing(user_id, order_id):
     billing_json = request.get_json(force=True)
-    billing_dict = json.loads(billing_json)
-    print(billing_dict)
+    try:
+        billing_dict = json.loads(billing_json)
+    except:
+        billing_dict = billing_json
 
     # step.1 - get billing_id from orders (GET from orders_db)
     url = 'http://127.0.0.1:8002/user/{0}/orders/{1}'.format(user_id, order_id)
@@ -255,6 +264,7 @@ def perform_billing(user_id, order_id):
     prms = json.dumps(payload)
     try:
         r = requests.patch(url, json = prms, timeout = 10)
+        print(r.text)
     except (OSError, ReadTimeout) as err:
         jsonify({'err_msg': 'server unavailable!'}), 503
     res = r.json()
@@ -266,7 +276,7 @@ def perform_billing(user_id, order_id):
 ''' --------------- General methods --------------- '''
 @application.route('/', methods = ['GET'])
 def start():
-    return jsonify({'succ_msg': 'Welcome!'}), 200
+    return render_template('start.html')
 
 @application.errorhandler(404)
 def page_not_found(e):
