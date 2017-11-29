@@ -19,8 +19,6 @@ if application.debug is not True:
     application.logger.addHandler(handler)
 
 
-# @application.route('/orders/<user_id>', methods = ['GET'])
-# @application.route('/order/<user_id>', methods = ['POST'])
 @application.route('/user/<user_id>/orders', methods = ['GET', 'POST'])
 def get_create_orders(user_id):
     if request.method == 'GET': # get orders info
@@ -34,13 +32,11 @@ def get_create_orders(user_id):
 
         return jsonify({'order_id': order_id})
 
-# @application.route('/<order_id>/<user_id>', methods = ['GET'])
 @application.route('/user/<user_id>/orders/<order_id>', methods = ['GET'])
 def order_info(user_id, order_id):
     user_order = orders_lib.get_order_info(int(order_id), user_id)
     return jsonify(user_order)
 
-# @application.route('/order/<order_id>/user/<user_id>/goods', methods = ['DELETE'])
 @application.route('/orders/<order_id>/goods', methods = ['DELETE'])
 def delete_goods_from_order(order_id):
     orders_lib.delete_goods(int(order_id))
