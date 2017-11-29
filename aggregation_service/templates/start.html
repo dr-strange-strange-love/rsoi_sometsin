@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script>
+function isNumeric(num) {
+    return !isNaN(num)
+}
+
+function validateGetGoods() {
+    var page = document.forms["getGoodsForm"]["page"].value;
+    var size = document.forms["getGoodsForm"]["size"].value;
+    var err_flag = false;
+    if (!isNumeric(page)) {
+        document.getElementById("getGoodsFormPageField").innerHTML = "Page must be integer!";
+        err_flag = true;
+    } else {
+        document.getElementById("getGoodsFormPageField").innerHTML = "";
+    }
+    if (!isNumeric(size)) {
+        document.getElementById("getGoodsFormSizeField").innerHTML = "Size must be integer!";
+        err_flag = true;
+    } else {
+        document.getElementById("getGoodsFormSizeField").innerHTML = "";
+    }
+    if (err_flag == true) {return false;}
+    $.get("goods", {page: page, size: size}, function(data, status){
+        document.getElementById("getGoodsFormOutput").innerHTML = JSON.stringify(data);
+    }, "json")
+    .fail(function(data) {
+        alert("An error occured: " + JSON.stringify(data));
+    });
+    return false;
+}
+
+function validateCreateOrder() {
+    var goods_list = document.forms["createOrderFormID"]["goods_list"].value;
+    var err_flag = false;
+    if (goods_list == "") {
+        document.getElementById("createOrderFormIDGoodsListField").innerHTML = "goods_list cant be empty!";
+        err_flag = true;
+    } else {
+        document.getElementById("createOrderFormIDGoodsListField").innerHTML = "";
+    }
+    if (err_flag == true) {return false;}
+    $.post("user/Gilles/orders", JSON.stringify(goods_list), function(data, status){
+        alert("Order created successfully: " + JSON.stringify(data));
+    }, "json")
+    .fail(function(data) {
+        alert("An error occured: " + JSON.stringify(data));
+    });
+    return false;
+}
+
+function validatePerformBilling() {
+    var billing_dict = document.forms["performBillingFormID"]["billing_dict"].value;
+    var order = document.forms["performBillingFormID"]["order"].value;
+    var err_flag = false;
+    if (billing_dict == "") {
+        document.getElementById("performBillingFormBillingDictField").innerHTML = "billing_dict cant be empty!";
+        err_flag = true;
+    } else {
+        document.getElementById("performBillingFormBillingDictField").innerHTML = "";
+    }
+    if (!isNumeric(order)) {
+        document.getElementById("performBillingFormOrderField").innerHTML = "Order must be integer!";
+        err_flag = true;
+    } else {
+        document.getElementById("performBillingFormOrderField").innerHTML = "";
+    }
+    if (err_flag == true) {return false;}
+    $.ajax({
+        url: 'user/Gilles/orders/' + order + '/billing',
+        type: 'PATCH',
+        data: JSON.stringify(billing_dict),
+        dataType: 'json'
+    })
+    .done(function(data) {
+        alert("Billing performed: " + JSON.stringify(data));
+    })
+    .fail(function(data) {
+        alert("An error occured: " + JSON.stringify(data));
+    });
+    return false;
+}
+
+function validateRemoveGoods() {
+    var order = document.forms["removeGoodsFormID"]["order"].value;
+    var err_flag = false;
+    if (!isNumeric(order)) {
+        document.getElementById("removeGoodsFormOrderField").innerHTML = "Order must be integer!";
+        err_flag = true;
+    } else {
+        document.getElementById("removeGoodsFormOrderField").innerHTML = "";
+    }
+    if (err_flag == true) {return false;}
+    $.ajax({
+        url: 'user/Gilles/orders/' + order + '/goods',
+        type: 'DELETE',
+        dataType: 'json'
+    })
+    .done(function(data) {
+        alert("Goode removed successfully: " + JSON.stringify(data));
+    })
+    .fail(function(data) {
+        alert("An error occured: " + JSON.stringify(data));
+    });
+    return false;
+}
+</script>
+</head>
+<body>
+
+<form name="getGoodsForm" onsubmit="return validateGetGoods()">
+Page: <input type="text" name="page"> <p id="getGoodsFormPageField"></p>
+Size: <input type="text" name="size"> <p id="getGoodsFormSizeField"></p>
+<input type="submit" value="Get goods (GET)">
+</form>
+<p id="getGoodsFormOutput"></p>
+<br>
+
+<textarea rows="4" cols="50" name="goods_list" form="createOrderFormID">[{"title": "kittens", "quantity": 2, "city": "Sochi"}]</textarea>
+<p id="createOrderFormIDGoodsListField"></p>
+<br>
+<form name="createOrderForm" onsubmit="return validateCreateOrder()" id="createOrderFormID">
+<input type="submit" value="Create order (POST)">
+</form>
+<br>
+
+<textarea rows="4" cols="50" name="billing_dict" form="performBillingFormID">{"sum": 1000, "complete": true}</textarea>
+<p id="performBillingFormBillingDictField"></p>
+<br>
+<form name="performBillingForm" onsubmit="return validatePerformBilling()" id="performBillingFormID">
+Order: <input type="text" name="order"> <p id="performBillingFormOrderField"></p>
+<input type="submit" value="Perform billing (PATCH)">
+</form>
+<br>
+
+<form name="removeGoodsForm" onsubmit="return validateRemoveGoods()" id="removeGoodsFormID">
+Order: <input type="text" name="order"> <p id="removeGoodsFormOrderField"></p>
+<input type="submit" value="Remove goods (DELETE)">
+</form>
+<br>
+
+</body>
+</html>
