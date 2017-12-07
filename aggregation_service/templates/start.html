@@ -3,6 +3,8 @@
 <head>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 <script>
+var prmsj = {{ prms|tojson }};
+
 function isNumeric(num) {
     return !isNaN(num)
 }
@@ -43,7 +45,7 @@ function validateCreateOrder() {
         document.getElementById("createOrderFormIDGoodsListField").innerHTML = "";
     }
     if (err_flag == true) {return false;}
-    $.post("user/Gilles/orders", JSON.stringify(goods_list), function(data, status){
+    $.post("user/" + prmsj.user + "/orders", JSON.stringify(goods_list), function(data, status){
         alert("Order created successfully: " + JSON.stringify(data));
     }, "json")
     .fail(function(data) {
@@ -70,7 +72,7 @@ function validatePerformBilling() {
     }
     if (err_flag == true) {return false;}
     $.ajax({
-        url: 'user/Gilles/orders/' + order + '/billing',
+        url: 'user/' + prmsj.user + '/orders/' + order + '/billing',
         type: 'PATCH',
         data: JSON.stringify(billing_dict),
         dataType: 'json'
@@ -95,7 +97,7 @@ function validateRemoveGoods() {
     }
     if (err_flag == true) {return false;}
     $.ajax({
-        url: 'user/Gilles/orders/' + order + '/goods',
+        url: 'user/' + prmsj.user + '/orders/' + order + '/goods',
         type: 'DELETE',
         dataType: 'json'
     })
