@@ -58,8 +58,6 @@ jwt = JWT(application, authenticate, identity)
 @jwt_required()
 def protected():
     return jsonify({'token_holder': current_identity.id}), 200
-''' --------------- --------------- '''
-
 
 @application.route('/connect', methods = ['POST'])
 def connect():
@@ -72,9 +70,11 @@ def connect():
     resp = make_response(jsonify({'succ_msg': 'can connect!'}))
     resp.headers['Authorization'] = 'Basic {0}'.format(application.config['SECRET_KEY'])
     return resp, 200
+''' --------------- --------------- '''
 
 
 @application.route('/user/<user_id>/orders', methods = ['GET', 'POST'])
+@jwt_required()
 def get_create_orders(user_id):
     if request.method == 'GET': # get orders info
         user_orders_list = orders_lib.get_orders_info_by_user_id(user_id)
@@ -94,6 +94,7 @@ def order_info(user_id, order_id):
     return jsonify(user_order)
 
 @application.route('/orders/<order_id>/goods', methods = ['DELETE'])
+@jwt_required()
 def delete_goods_from_order(order_id):
     orders_lib.delete_goods(int(order_id))
     return jsonify({'succ_msg': 'Goods removed successfully!'})

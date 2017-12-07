@@ -19,7 +19,60 @@ if application.debug is not True:
     application.logger.addHandler(handler)
 
 
+''' --------------- JWT Oauth2 setup --------------- '''
+application.config['SECRET_KEY'] = 'ashdnUYG78has_pjdi'
+authorization_code = 'jdusorjg'
+
+class User(object):
+    def __init__(self, id, username, password):
+        self.id = id
+        self.username = username
+        self.password = password
+
+    def __str__(self):
+        return "User(id='%s')" % self.id
+
+users = [
+    User('Gilles', 'Gilles', 'c0c4a69b17a7955ac230bfc8db4a123eaa956ccf3c0022e68b8d4e2f5b699d1f'),
+    User('Felix', 'Felix', '72ab994fa2eb426c051ef59cad617750bfe06d7cf6311285ff79c19c32afd236'),
+    User('Paul', 'Paul', '28f0116ef42bf718324946f13d787a1d41274a08335d52ee833d5b577f02a32a'),
+]
+
+username_table = {u.username: u for u in users}
+userid_table = {u.id: u for u in users}
+
+def authenticate(username, password):
+    user = username_table.get(username, None)
+    if user and safe_str_cmp(user.password.encode('utf-8'), password.encode('utf-8')):
+        return user
+
+def identity(payload):
+    user_id = payload['identity']
+    return userid_table.get(user_id, None)
+
+jwt = JWT(application, authenticate, identity)
+
+@application.route('/protected')
+@jwt_required()
+def protected():
+    return jsonify({'token_holder': current_identity.id}), 200
+
+@application.route('/connect', methods = ['POST'])
+def connect():
+    connect_json = request.get_json(force=True)
+    connect_dict = json.loads(connect_json)
+    auth_code = connect_dict['auth_code']
+    if not (auth_code == authorization_code):
+        return jsonify({'err_msg': 'auth_code incorrect'}), 400
+
+    resp = make_response(jsonify({'succ_msg': 'can connect!'}))
+    resp.headers['Authorization'] = 'Basic {0}'.format(application.config['SECRET_KEY'])
+    return resp, 200
+''' --------------- --------------- '''
+
+
 @application.route('/billing/<billing_id>', methods = ['GET', 'PATCH', 'DELETE'])
+@jwt_required()
 def get_update_delete_bill(billing_id):
     if request.method == 'GET': # get bill info
         billing_info = billing_lib.get_billing_info_by_id(int(billing_id))
@@ -40,6 +93,7 @@ def get_update_delete_bill(billing_id):
         return jsonify(res)
 
 @application.route('/billing', methods = ['POST'])
+@jwt_required()
 def create_bill():
     billing_json = request.get_json(force=True)
     billing_dict = json.loads(billing_json)
