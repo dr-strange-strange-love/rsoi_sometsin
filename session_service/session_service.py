@@ -100,7 +100,7 @@ def token():
         {
             'identity': identity,
             'iat': datetime.utcnow(),
-            'exp': datetime.utcnow()+timedelta(minutes=5),
+            'exp': datetime.utcnow()+timedelta(minutes=1),
             'nbf': datetime.utcnow(),
         },
         authorization_basic.split()[1],
@@ -113,7 +113,7 @@ def token():
     if not user_tokens:
         user_tokens = dict()
     if not user_tokens.get(client_id, None):
-        user_tokens[client_id + '_refresh'] = base64.b64encode(identity.encode('ascii'))
+        user_tokens[client_id + '_refresh'] = base64.b64encode(identity.encode('ascii')).decode("utf-8")
     user_tokens[client_id] = encoded_jwt.decode("utf-8")
     set_value(rds, identity, user_tokens)
 
@@ -130,14 +130,15 @@ def refresh_token():
     authorization_basic = request.headers['Authorization']
     print(authorization_basic)
 
-    identity = base64.b64decode(refresh_token).decode('utf-8')
+    identity = base64.b64decode(refresh_token.encode('ascii')).decode('utf-8')
+    print(identity)
 
     # generate new jwt token based on identity, time and app_secret
     encoded_jwt = jwt.encode(
         {
             'identity': identity,
             'iat': datetime.utcnow(),
-            'exp': datetime.utcnow()+timedelta(minutes=5),
+            'exp': datetime.utcnow()+timedelta(minutes=1),
             'nbf': datetime.utcnow(),
         },
         authorization_basic.split()[1],
@@ -145,9 +146,9 @@ def refresh_token():
     print(encoded_jwt)
 
     # update token
-    user_tokens = get_value(rds, refresh_token)
+    user_tokens = get_value(rds, identity)
     user_tokens[client_id] = encoded_jwt.decode("utf-8")
-    set_value(rds, refresh_token, user_tokens)
+    set_value(rds, identity, user_tokens)
 
     return jsonify({'succ_msg': 'token refreshed!'}), 200
 

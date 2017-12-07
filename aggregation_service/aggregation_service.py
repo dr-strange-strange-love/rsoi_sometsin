@@ -88,6 +88,12 @@ jwt = JWTManager(application)
 def protected():
     username = get_jwt_identity()
     return jsonify({'token_holder': '{0}'.format(username)}), 200
+
+class TokenError(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
 ''' --------------- --------------- '''
 
 
@@ -240,13 +246,22 @@ def good_info_by_id(good_id):
 
 ''' --------------- Orders methods --------------- '''
 @application.route('/user/<user_id>/orders', methods = ['GET', 'POST'])
+@jwt_required
 def get_create_order(user_id):
+    # get user tokens
+    url = 'http://127.0.0.1:8004/user/{0}/tokens'.format(get_jwt_identity())
+    r = requests.get(url)
+    user_tokens = r.json()
+    print(user_tokens)
+
     if request.method == 'GET':
         url = 'http://127.0.0.1:8002/user/{0}/orders'.format(user_id)
         prms = {}
-        hdrs = {'accept': 'application/json'}
+        hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('orders_service', 'invalid_token'))}
         try:
             r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
+            if r.status_code == 401:
+                return jsonify(r.json()), 401
         except (OSError, ReadTimeout) as err:
             jsonify({'err_msg': 'orders service unavailable...'}), 503
         decoded_data = r.json()
@@ -277,9 +292,12 @@ def get_create_order(user_id):
         url = 'http://127.0.0.1:8003/billing'
         payload = price
         prms = json.dumps(payload)
+        hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('billing_service', 'invalid_token'))}
         try:
-            r = requests.post(url, json = prms, timeout = 5)
-        except (OSError, ReadTimeout) as err:
+            r = requests.post(url, json = prms, headers = hdrs, timeout = 5)
+            if r.status_code == 401:
+                raise TokenError('billing token invalid')
+        except (OSError, ReadTimeout, TokenError) as err:
             # -step.1
             print('rollbacking1!')
             url = 'http://127.0.0.1:8001/goods'
@@ -297,9 +315,12 @@ def get_create_order(user_id):
             'billing_id': bill['bill_id']
         }
         prms = json.dumps(payload)
+        hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('orders_service', 'invalid_token'))}
         try:
-            r = requests.post(url, json = prms, timeout = 10)
-        except (OSError, ReadTimeout) as err:
+            r = requests.post(url, json = prms, headers = hdrs, timeout = 10)
+            if r.status_code == 401:
+                raise TokenError('orders token invalid')
+        except (OSError, ReadTimeout, TokenError) as err:
             # -step.1
             print('rollbacking2!')
             url = 'http://127.0.0.1:8001/goods'
@@ -310,16 +331,17 @@ def get_create_order(user_id):
             # -step.2
             url = 'http://127.0.0.1:8003/billing/' + str(bill['bill_id'])
             r = requests.delete(url)
-            return jsonify({'err_msg': 'orders service unavailable, rolling back'}), 503
+            return jsonify({'err_msg': 'orders service unavailable, rolling back...'}), 503
         print(r.text)
         order = r.json()
 
         return jsonify(order), 200
 
 @application.route('/user/<user_id>/orders/<order_id>', methods = ['GET'])
+@jwt_required
 def order_info(user_id, order_id):
     # get user tokens
-    url = 'http://127.0.0.1:8004/user/{0}/tokens'.format(str(user_id))
+    url = 'http://127.0.0.1:8004/user/{0}/tokens'.format(get_jwt_identity())
     r = requests.get(url)
     user_tokens = r.json()
     print(user_tokens)
@@ -336,7 +358,7 @@ def order_info(user_id, order_id):
             r_dict = r.json()
             if r_dict['description'] == 'Signature has expired':
                 refresh_token('orders_service', user_tokens.get('orders_service_refresh', 'invalid_token'))
-            return jsonify(r.json()), 401
+            return jsonify(r_dict), 401
     except (OSError, ReadTimeout) as err:
         return jsonify({'err_msg': 'orders service unavailable...'}), 503
     user_order = r.json()
@@ -353,25 +375,43 @@ def order_info(user_id, order_id):
     url = 'http://127.0.0.1:8003/billing/' + str(user_order['billing_id'])
     prms = {}
     hdrs = {'accept': 'application/json'}
+    hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('billing_service', 'invalid_token'))}
     try:
         r = requests.get(url, params = prms, headers = hdrs, timeout = 5)
+        if r.status_code == 401:
+            raise TokenError('billing token invalid')
         billing_info = r.json()
         order_dict['billing_info'] = billing_info
     except (OSError, ReadTimeout) as err:
         order_dict['billing_info'] = 'billing service unavailable!'
+    except TokenError as err:
+        refresh_token('billing_service', user_tokens.get('billing_service_refresh', 'invalid_token'))
+        order_dict['billing_info'] = 'billing token invalid, refreshing!'
 
     return jsonify(order_dict), 200
 
 @application.route('/user/<user_id>/orders/<order_id>/goods', methods = ['DELETE'])
+@jwt_required
 def delete_goods_from_order(user_id, order_id):
+    # get user tokens
+    url = 'http://127.0.0.1:8004/user/{0}/tokens'.format(get_jwt_identity())
+    r = requests.get(url)
+    user_tokens = r.json()
+    print(user_tokens)
+
     # step.1 - get goods info from order (GET from orders_db)
     url = 'http://127.0.0.1:8002/user/{0}/orders/{1}'.format(user_id, order_id)
     prms = {}
     hdrs = {'accept': 'application/json'}
+    hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('orders_service', 'invalid_token'))}
     try:
         r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
+        if r.status_code == 401:
+            raise TokenError('orders token invalid')
     except (OSError, ReadTimeout) as err:
         return jsonify({'err_msg': 'orders service unavailable...'}), 503
+    except TokenError as err:
+        return jsonify({'err_msg': 'orders_service token invalid...'}), 401
     user_order = r.json()
     try:
         billing_id = user_order['billing_id']
@@ -400,16 +440,25 @@ def delete_goods_from_order(user_id, order_id):
     url = 'http://127.0.0.1:8003/billing/' + str(billing_id)
     payload = {'total': 0}
     prms = json.dumps(payload)
+    hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('billing_service', 'invalid_token'))}
     try:
         r = requests.patch(url, json = prms, timeout = 5)
-        print(r.text)
-    except ReadTimeout as err:
+        if r.status_code == 401:
+            raise TokenError('billing token invalid')
+    except (ReadTimeout, TokenError) as err:
         aggregation_lib.reset_billing_total_q.put(url)
 
     return jsonify({'succ_msg': 'Goods removed successfully!'}), 200
 
 @application.route('/user/<user_id>/orders/<order_id>/billing', methods = ['PATCH'])
+@jwt_required
 def perform_billing(user_id, order_id):
+    # get user tokens
+    url = 'http://127.0.0.1:8004/user/{0}/tokens'.format(get_jwt_identity())
+    r = requests.get(url)
+    user_tokens = r.json()
+    print(user_tokens)
+
     billing_json = request.get_json(force=True)
     try:
         billing_dict = json.loads(billing_json)
@@ -420,10 +469,15 @@ def perform_billing(user_id, order_id):
     url = 'http://127.0.0.1:8002/user/{0}/orders/{1}'.format(user_id, order_id)
     prms = {}
     hdrs = {'accept': 'application/json'}
+    hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('orders_service', 'invalid_token'))}
     try:
         r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
+        if r.status_code == 401:
+            raise TokenError('orders token invalid')
     except (OSError, ReadTimeout) as err:
         return jsonify({'err_msg': 'orders service unavailable...'}), 503
+    except TokenError as err:
+        return jsonify({'err_msg': 'orders service token invalid...'}), 401
     user_order = r.json()
     try:
         billing_id = user_order['billing_id']
@@ -434,11 +488,15 @@ def perform_billing(user_id, order_id):
     url = 'http://127.0.0.1:8003/billing/' + str(billing_id)
     payload = billing_dict
     prms = json.dumps(payload)
+    hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('billing_service', 'invalid_token'))}
     try:
-        r = requests.patch(url, json = prms, timeout = 10)
-        print(r.text)
+        r = requests.patch(url, json = prms, headers = hdrs, timeout = 10)
+        if r.status_code == 401:
+            raise TokenError('billing token invalid')
     except (OSError, ReadTimeout) as err:
         jsonify({'err_msg': 'server unavailable!'}), 503
+    except TokenError as err:
+        return jsonify({'err_msg': 'billing service token invalid...'}), 401
     res = r.json()
 
     return jsonify(res), 200

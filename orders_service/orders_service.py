@@ -94,7 +94,6 @@ def order_info(user_id, order_id):
     return jsonify(user_order)
 
 @application.route('/orders/<order_id>/goods', methods = ['DELETE'])
-@jwt_required()
 def delete_goods_from_order(order_id):
     orders_lib.delete_goods(int(order_id))
     return jsonify({'succ_msg': 'Goods removed successfully!'})
