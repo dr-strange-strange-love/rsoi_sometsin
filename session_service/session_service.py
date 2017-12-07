@@ -113,7 +113,7 @@ def token():
     if not user_tokens:
         user_tokens = dict()
     if not user_tokens.get(client_id, None):
-        user_tokens[client_id + '_refresh'] = base64.b64encode(identity.encode('ascii')) identity
+        user_tokens[client_id + '_refresh'] = base64.b64encode(identity.encode('ascii'))
     user_tokens[client_id] = encoded_jwt.decode("utf-8")
     set_value(rds, identity, user_tokens)
 
