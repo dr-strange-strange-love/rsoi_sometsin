@@ -4,8 +4,9 @@
 <body>
     <div id="title"></div>
     <br>
+    <div id="plot"></div>
+    <br>
     <div id="table"></div>
-    <img src="http://127.0.0.1:8005/admin/stats/ops_status/fig" alt="Plot placeholder" height="500">
 
 
     <script type="text/javascript">
@@ -13,6 +14,8 @@
         var keys = Object.keys(prmsj)
 
         document.getElementById("title").innerHTML = "<table style='width:96%', align='center', border=0><th>Ops report</th></table>"
+        document.getElementById("plot").innerHTML = "<table style='width:96%', align='center', border=0><th>" +
+        "<img src='http://127.0.0.1:8005/admin/stats/ops_status/fig' alt='Plot placeholder' height='300'></th></table>"
 
         var out = "<table style='width:96%', align='center', border=1>" +
         "<colgroup><col style='width:20%'><col style='width:15%'><col style='width:15%'>" +

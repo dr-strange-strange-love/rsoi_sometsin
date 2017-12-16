@@ -162,7 +162,7 @@ def ops_status_fig():
 
     #Plotting
     fig, ax = plt.subplots()
-    fig.set_size_inches(10, 8)
+    fig.set_size_inches(16, 8)
     plt.title('Ops success rates')
     ax.set_xlabel('Ratios')
     ax.set_ylabel('Ops')
