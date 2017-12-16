@@ -105,7 +105,7 @@ def check_role(username, role):
     user = userid_table.get(username, None)
     if user and user.username == role:
         return True
-    retur False
+    return False
 
 def identity(payload):
     user_id = payload['identity']
