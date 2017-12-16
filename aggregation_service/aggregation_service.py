@@ -265,7 +265,7 @@ def user_login_fig():
     prms = {}
     hdrs = {
         'accept': 'application/json',
-        hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))}
+        'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))
     }
     r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
     user_login = r.json()
@@ -318,7 +318,7 @@ def user_bill_update():
     prms = {}
     hdrs = {
         'accept': 'application/json',
-        hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))}
+        'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))
     }
     r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
     if r.status_code == 401:
@@ -336,7 +336,7 @@ def user_bill_update_fig():
     prms = {}
     hdrs = {
         'accept': 'application/json',
-        hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))}
+        'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))
     }
     r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
     user_bill_update = r.json()
@@ -381,7 +381,7 @@ def ops_status():
     prms = {}
     hdrs = {
         'accept': 'application/json',
-        hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))}
+        'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))
     }
     r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
     if r.status_code == 401:
@@ -399,7 +399,7 @@ def ops_status_fig():
     prms = {}
     hdrs = {
         'accept': 'application/json',
-        hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))}
+        'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))
     }
     r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
     ops_status = r.json()
