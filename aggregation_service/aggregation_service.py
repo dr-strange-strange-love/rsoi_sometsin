@@ -243,6 +243,12 @@ def refresh_token(client_id, refresh_token):
 @application.route('/admin/stats/user_login', methods = ['GET'])
 @jwt_required
 def user_login():
+    # get user tokens
+    url = 'http://127.0.0.1:8004/user/{0}/tokens'.format(get_jwt_identity())
+    r = requests.get(url)
+    user_tokens = r.json()
+    print(user_tokens)
+    
     url = 'http://127.0.0.1:8005/admin/stats/user_login'
     prms = {}
     hdrs = {
@@ -261,6 +267,12 @@ def user_login():
 @application.route('/admin/stats/user_login/fig')
 @jwt_required
 def user_login_fig():
+    # get user tokens
+    url = 'http://127.0.0.1:8004/user/{0}/tokens'.format(get_jwt_identity())
+    r = requests.get(url)
+    user_tokens = r.json()
+    print(user_tokens)
+
     url = 'http://127.0.0.1:8005/admin/stats/user_login'
     prms = {}
     hdrs = {
@@ -314,6 +326,12 @@ def user_login_fig():
 @application.route('/admin/stats/user_bill_update', methods = ['GET'])
 @jwt_required
 def user_bill_update():
+    # get user tokens
+    url = 'http://127.0.0.1:8004/user/{0}/tokens'.format(get_jwt_identity())
+    r = requests.get(url)
+    user_tokens = r.json()
+    print(user_tokens)
+
     url = 'http://127.0.0.1:8005/admin/stats/user_bill_update'
     prms = {}
     hdrs = {
@@ -332,6 +350,12 @@ def user_bill_update():
 @application.route('/admin/stats/user_bill_update/fig', methods = ['GET'])
 @jwt_required
 def user_bill_update_fig():
+    # get user tokens
+    url = 'http://127.0.0.1:8004/user/{0}/tokens'.format(get_jwt_identity())
+    r = requests.get(url)
+    user_tokens = r.json()
+    print(user_tokens)
+
     url = 'http://127.0.0.1:8005/admin/stats/user_bill_update'
     prms = {}
     hdrs = {
@@ -377,6 +401,12 @@ def user_bill_update_fig():
 @application.route('/admin/stats/ops_status', methods = ['GET'])
 @jwt_required
 def ops_status():
+    # get user tokens
+    url = 'http://127.0.0.1:8004/user/{0}/tokens'.format(get_jwt_identity())
+    r = requests.get(url)
+    user_tokens = r.json()
+    print(user_tokens)
+
     url = 'http://127.0.0.1:8005/admin/stats/ops_status'
     prms = {}
     hdrs = {
@@ -395,6 +425,12 @@ def ops_status():
 @application.route('/admin/stats/ops_status/fig')
 @jwt_required
 def ops_status_fig():
+    # get user tokens
+    url = 'http://127.0.0.1:8004/user/{0}/tokens'.format(get_jwt_identity())
+    r = requests.get(url)
+    user_tokens = r.json()
+    print(user_tokens)
+
     url = 'http://127.0.0.1:8005/admin/stats/ops_status'
     prms = {}
     hdrs = {
