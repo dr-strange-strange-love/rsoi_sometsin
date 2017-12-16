@@ -247,7 +247,7 @@ def user_login():
     prms = {}
     hdrs = {
         'accept': 'application/json',
-        hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))}
+        'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))
     }
     r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
     if r.status_code == 401:
