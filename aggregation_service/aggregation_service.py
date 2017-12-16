@@ -87,9 +87,10 @@ class User(object):
         return "User(id='%s')" % self.id
 
 users = [
-    User('Gilles', 'Gilles', 'c0c4a69b17a7955ac230bfc8db4a123eaa956ccf3c0022e68b8d4e2f5b699d1f'),
-    User('Felix', 'Felix', '72ab994fa2eb426c051ef59cad617750bfe06d7cf6311285ff79c19c32afd236'),
-    User('Paul', 'Paul', '28f0116ef42bf718324946f13d787a1d41274a08335d52ee833d5b577f02a32a'),
+    User('admin', 'admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'),
+    User('Gilles', 'admin', 'c0c4a69b17a7955ac230bfc8db4a123eaa956ccf3c0022e68b8d4e2f5b699d1f'),
+    User('Felix', 'user', '72ab994fa2eb426c051ef59cad617750bfe06d7cf6311285ff79c19c32afd236'),
+    User('Paul', 'user', '28f0116ef42bf718324946f13d787a1d41274a08335d52ee833d5b577f02a32a'),
 ]
 
 username_table = {u.username: u for u in users}
@@ -99,6 +100,12 @@ def authenticate(username, password):
     user = username_table.get(username, None)
     if user and safe_str_cmp(user.password.encode('utf-8'), password.encode('utf-8')):
         return user
+
+def check_role(username, role):
+    user = userid_table.get(username, None)
+    if user and user.username == role:
+        return True
+    retur False
 
 def identity(payload):
     user_id = payload['identity']
@@ -245,6 +252,9 @@ def refresh_token(client_id, refresh_token):
 @application.route('/admin/stats/user_login', methods = ['GET'])
 @jwt_required
 def user_login():
+    if not check_role(get_jwt_identity(), 'admin'):
+        return jsonify('err_msg': 'admin resource, access denied'), 400
+
     # get user tokens
     url = 'http://127.0.0.1:8004/user/{0}/tokens'.format(get_jwt_identity())
     r = requests.get(url)
@@ -328,6 +338,9 @@ def user_login_fig():
 @application.route('/admin/stats/user_bill_update', methods = ['GET'])
 @jwt_required
 def user_bill_update():
+    if not check_role(get_jwt_identity(), 'admin'):
+        return jsonify('err_msg': 'admin resource, access denied'), 400
+
     # get user tokens
     url = 'http://127.0.0.1:8004/user/{0}/tokens'.format(get_jwt_identity())
     r = requests.get(url)
@@ -403,6 +416,9 @@ def user_bill_update_fig():
 @application.route('/admin/stats/ops_status', methods = ['GET'])
 @jwt_required
 def ops_status():
+    if not check_role(get_jwt_identity(), 'admin'):
+        return jsonify('err_msg': 'admin resource, access denied'), 400
+
     # get user tokens
     url = 'http://127.0.0.1:8004/user/{0}/tokens'.format(get_jwt_identity())
     r = requests.get(url)
