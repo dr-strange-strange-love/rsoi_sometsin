@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('Agg')
 
 # python modules
 from datetime import datetime, timedelta
@@ -248,7 +250,7 @@ def user_login():
     r = requests.get(url)
     user_tokens = r.json()
     print(user_tokens)
-    
+
     url = 'http://127.0.0.1:8005/admin/stats/user_login'
     prms = {}
     hdrs = {
@@ -416,11 +418,11 @@ def ops_status():
     r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
     if r.status_code == 401:
         return jsonify(r.json()), 401
-    ops_status = r.json()
+    ops_stats = r.json()
 
     if request_wants_json():
-        return jsonify(ops_status), 200
-    return render_template('ops_status.html', prms = ops_status)
+        return jsonify(ops_stats), 200
+    return render_template('ops_status.html', prms = ops_stats)
 
 @application.route('/admin/stats/ops_status/fig')
 @jwt_required
@@ -438,7 +440,7 @@ def ops_status_fig():
         'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))
     }
     r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
-    ops_status = r.json()
+    ops_stats = r.json()
 
     ops = []
     ratios = []
