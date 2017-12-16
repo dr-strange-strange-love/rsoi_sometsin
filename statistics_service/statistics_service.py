@@ -1,11 +1,16 @@
 
 # python modules
-from flask import Flask, jsonify, request, render_template, redirect, url_for, make_response
+from flask import Flask, jsonify, request, render_template, redirect, url_for, make_response, send_file
 from flask_jwt import JWT, jwt_required, current_identity
 from werkzeug.security import safe_str_cmp
 import json
 import pickle
 import redis
+
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas
+from io import BytesIO
 
 application = Flask(__name__)
 
@@ -135,6 +140,44 @@ def ops_status():
     if request_wants_json():
         return jsonify(ops_status), 200
     return render_template('ops_status.html', prms = ops_status)
+
+@app.route('/admin/stats/ops_status/fig')
+def ops_status_fig():
+    ops_stats = statistics_lib.get_ops_status()
+
+    ops = []
+    ratios = []
+    for key in ops_stats:
+        ops.append(key)
+        ratios.append(ops_stats[key]['success']/ops_stats[key]['total'])
+    print(ops)
+    print(ratios)
+
+    df = pandas.DataFrame(dict(\
+        ops=ops,
+        ratios=ratios
+    ))
+
+    #Plotting
+    fig, ax = plt.subplots()
+    fig.set_size_inches(10, 8)
+    plt.title('Ops success rates')
+    ax.set_xlabel('Ratios')
+    ax.set_ylabel('Ops')
+    ind = np.arange(len(df))
+    width = 0.8
+    ax.barh(ind + 1*width, df.ratios, width, color='chocolate', label='success rate')
+    ax.set(yticks=ind + width, yticklabels=df.ops, ylim=[width - 1, len(df)+1])
+    ax.set_xlim([0, 1])
+    ax.legend()
+    plt.grid()
+    plt.show()
+
+    img = BytesIO()
+    plt.savefig(img)
+    img.seek(0)
+
+    return send_file(img, mimetype='image/png')
 
 
 @application.route('/', methods = ['GET'])
