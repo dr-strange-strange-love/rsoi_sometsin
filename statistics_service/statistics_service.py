@@ -141,7 +141,7 @@ def ops_status():
         return jsonify(ops_status), 200
     return render_template('ops_status.html', prms = ops_status)
 
-@app.route('/admin/stats/ops_status/fig')
+@application.route('/admin/stats/ops_status/fig')
 def ops_status_fig():
     ops_stats = statistics_lib.get_ops_status()
 
