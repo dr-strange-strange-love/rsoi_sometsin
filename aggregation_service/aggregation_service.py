@@ -1,5 +1,6 @@
 
 # python modules
+from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, render_template, redirect, url_for, make_response
 from flask_jwt import JWT, jwt_required, current_identity
 from flask_jwt_extended import (
@@ -15,15 +16,10 @@ from werkzeug.security import safe_str_cmp
 import base64
 import hashlib
 import json
+import random
 import requests
 
-# local modules
-import aggregation_lib
-
 application = Flask(__name__)
-
-thread = Thread(target = aggregation_lib.reset_billing_total_queue)
-thread.start()
 
 if application.debug is not True:
     import logging
@@ -34,6 +30,22 @@ if application.debug is not True:
     formatter = logging.Formatter("%(asctime)s - %(module)s - %(lineno)d - %(levelname)s - %(message)s")
     handler.setFormatter(formatter)
     application.logger.addHandler(handler)
+
+# local modules
+import aggregation_lib
+
+thread = Thread(target = aggregation_lib.reset_billing_total_queue)
+thread.start()
+thread = Thread(target = aggregation_lib.statistics_queue_async)
+thread.start()
+thread = Thread(target = aggregation_lib.statistics_queue_sync)
+thread.start()
+
+
+# Tests whether to return json or render_template
+def request_wants_json():
+    best = request.accept_mimetypes.best_match(['application/json', 'text/html'])
+    return best == 'application/json' and request.accept_mimetypes[best] > request.accept_mimetypes['text/html']
 
 
 ''' --------------- JWT setup --------------- '''
@@ -51,6 +63,11 @@ clients = [
         'client_id': 'billing_service',
         'redirect_url': 'http://127.0.0.1:8003/connect',
         'auth_code': 'jdusorjg'
+    },
+    {
+        'client_id': 'statistics_service',
+        'redirect_url': 'http://127.0.0.1:8005/connect',
+        'auth_code': 'isjfydth'
     }
 ]
 
@@ -119,10 +136,24 @@ def login():
         hdrs = {'Authorization': 'Basic {0}'.format(application.config['SECRET_KEY'])}
         r = requests.post(url, json = prms, headers = hdrs)
         print(r.headers)
+        aggregation_lib.statistics_q_sync.put({
+            'job': 'user login',
+            'status': 'success',
+            'user': username,
+            'time': str(datetime.utcnow()),
+            'hash': '%032x' % random.getrandbits(128)
+        })
         resp = make_response(jsonify({'succ_msg': 'logged in, token set up'}))
         set_access_cookies(resp, r.headers['Cookie'])
         return resp, 200
     else:
+        aggregation_lib.statistics_q_sync.put({
+            'job': 'user login',
+            'status': 'failure',
+            'user': username,
+            'time': str(datetime.utcnow()),
+            'hash': '%032x' % random.getrandbits(128)
+        })
         return jsonify({'err_msg': 'user doesnt exist'}), 400
 
 @application.route('/', methods = ['GET'])
@@ -224,8 +255,12 @@ def goods_list():
     except (OSError, ReadTimeout) as err:
         jsonify({'err_msg': 'goods service unavailable...'}), 503
     decoded_data = r.json()
+    print(decoded_data)
 
-    return jsonify(decoded_data), 200
+    # Returning json-file or html-template
+    if request_wants_json():
+        return jsonify(decoded_data), 200
+    return render_template('goods.html', prms = decoded_data)
 
 @application.route('/goods/<good_id>', methods = ['GET'])
 def good_info_by_id(good_id):
@@ -374,7 +409,6 @@ def order_info(user_id, order_id):
     # step.2 - get billing data for that order (if can't - degrade)
     url = 'http://127.0.0.1:8003/billing/' + str(user_order['billing_id'])
     prms = {}
-    hdrs = {'accept': 'application/json'}
     hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('billing_service', 'invalid_token'))}
     try:
         r = requests.get(url, params = prms, headers = hdrs, timeout = 5)
@@ -432,11 +466,34 @@ def delete_goods_from_order(user_id, order_id):
     print(r.text)
 
     # step.3 - reduce goods to [] (DELETE/POST to order_db)
+    aggregation_lib.statistics_q_async.put({
+        'url': 'http://127.0.0.1:8002/orders/{0}/goods'.format(order_id),
+        'method': 'DELETE',
+        'payload': {},
+        'headers': {},
+        'job': 'goods removal',
+        'user': get_jwt_identity(),
+        'time': str(datetime.utcnow()),
+        'hash': '%032x' % random.getrandbits(128)
+    })
+    '''
     url = 'http://127.0.0.1:8002/orders/{0}/goods'.format(order_id)
     r = requests.delete(url, timeout = 10)
     print(r.text)
+    '''
 
     # step.4 - update bill (PATCH to billing_db)
+    aggregation_lib.statistics_q_async.put({
+        'url': 'http://127.0.0.1:8003/billing/' + str(billing_id),
+        'method': 'PATCH',
+        'payload': {'total': 0},
+        'headers': {'Authorization': 'JWT {0}'.format(user_tokens.get('billing_service', 'invalid_token'))},
+        'job': 'bill update',
+        'user': get_jwt_identity(),
+        'time': str(datetime.utcnow()),
+        'hash': '%032x' % random.getrandbits(128)
+    })
+    '''
     url = 'http://127.0.0.1:8003/billing/' + str(billing_id)
     payload = {'total': 0}
     prms = json.dumps(payload)
@@ -447,8 +504,9 @@ def delete_goods_from_order(user_id, order_id):
             raise TokenError('billing token invalid')
     except (ReadTimeout, TokenError) as err:
         aggregation_lib.reset_billing_total_q.put(url)
+    '''
 
-    return jsonify({'succ_msg': 'Goods removed successfully!'}), 200
+    return jsonify({'succ_msg': 'Goods are being removerd, check logs!'}), 200
 
 @application.route('/user/<user_id>/orders/<order_id>/billing', methods = ['PATCH'])
 @jwt_required
@@ -485,6 +543,17 @@ def perform_billing(user_id, order_id):
         return jsonify(user_order), 400
 
     # step.2 - update bill (PATCH to billing_db)
+    aggregation_lib.statistics_q_async.put({
+        'url': 'http://127.0.0.1:8003/billing/' + str(billing_id),
+        'method': 'PATCH',
+        'payload': billing_dict,
+        'headers': {'Authorization': 'JWT {0}'.format(user_tokens.get('billing_service', 'invalid_token'))},
+        'job': 'bill update',
+        'user': get_jwt_identity(),
+        'time': str(datetime.utcnow()),
+        'hash': '%032x' % random.getrandbits(128)
+    })
+    '''
     url = 'http://127.0.0.1:8003/billing/' + str(billing_id)
     payload = billing_dict
     prms = json.dumps(payload)
@@ -498,8 +567,9 @@ def perform_billing(user_id, order_id):
     except TokenError as err:
         return jsonify({'err_msg': 'billing service token invalid...'}), 401
     res = r.json()
+    '''
 
-    return jsonify(res), 200
+    return jsonify({'succ_msh': 'bill is being updated, check logs...'}), 200
 ''' --------------- --------------- '''
 
 

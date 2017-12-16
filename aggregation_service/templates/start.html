@@ -27,7 +27,8 @@ function validateGetGoods() {
     }
     if (err_flag == true) {return false;}
     $.get("goods", {page: page, size: size}, function(data, status){
-        document.getElementById("getGoodsFormOutput").innerHTML = JSON.stringify(data);
+        // document.getElementById("getGoodsFormOutput").innerHTML = JSON.stringify(data);
+        window.location.href = "/goods?page=" + page + "&size=" + size;
     }, "json")
     .fail(function(data) {
         alert("An error occured: " + JSON.stringify(data));

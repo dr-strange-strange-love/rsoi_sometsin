@@ -100,7 +100,7 @@ def token():
         {
             'identity': identity,
             'iat': datetime.utcnow(),
-            'exp': datetime.utcnow()+timedelta(minutes=1),
+            'exp': datetime.utcnow()+timedelta(minutes=15),
             'nbf': datetime.utcnow(),
         },
         authorization_basic.split()[1],
@@ -138,7 +138,7 @@ def refresh_token():
         {
             'identity': identity,
             'iat': datetime.utcnow(),
-            'exp': datetime.utcnow()+timedelta(minutes=1),
+            'exp': datetime.utcnow()+timedelta(minutes=15),
             'nbf': datetime.utcnow(),
         },
         authorization_basic.split()[1],

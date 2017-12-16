@@ -1,0 +1,27 @@
+
+<!DOCTYPE html>
+<html>
+<body>
+    <div id="title"></div>
+    <br>
+    <div id="table"></div>
+
+
+    <script type="text/javascript">
+        var prmsj = {{ prms|tojson }};
+
+        document.getElementById("title").innerHTML = "<table style='width:96%', align='center', border=0><th>Users' bill updates</th></table>"
+
+        var out = "<table style='width:96%', align='center', border=1>" +
+        "<colgroup><col style='width:10%'><col style='width:20%'><col style='width:20%'>" +
+        "<col style='width:10%'><col style='width:10%'><col style='width:30%'></colgroup><tbody>" + 
+        "<tr><th>User</th><th>Payload</th><th>Url</th><th>Status</th><th>Status code</th><th>Time</th></tr>";
+        for(i = 0; i < prmsj.length; i++) {
+            out += "<tr><td>" + prmsj[i].user + "</td><td>" + JSON.stringify(prmsj[i].payload) + "</td><td>" + prmsj[i].url + "</td>" +
+            "<td>" + prmsj[i].status + "</td><td>" + prmsj[i].status_code + "</td><td>" + prmsj[i].time + "</td></tr>";
+        }
+        out += "</tbody></table>";
+        document.getElementById("table").innerHTML = out;
+    </script>
+</body>
+</html>
