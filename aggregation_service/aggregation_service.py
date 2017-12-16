@@ -78,19 +78,20 @@ clients = [
 ]
 
 class User(object):
-    def __init__(self, id, username, password):
+    def __init__(self, id, username, password, role='user'):
         self.id = id
         self.username = username
         self.password = password
+        self.role = role
 
     def __str__(self):
         return "User(id='%s')" % self.id
 
 users = [
-    User('admin', 'admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'),
-    User('Gilles', 'admin', 'c0c4a69b17a7955ac230bfc8db4a123eaa956ccf3c0022e68b8d4e2f5b699d1f'),
-    User('Felix', 'user', '72ab994fa2eb426c051ef59cad617750bfe06d7cf6311285ff79c19c32afd236'),
-    User('Paul', 'user', '28f0116ef42bf718324946f13d787a1d41274a08335d52ee833d5b577f02a32a'),
+    User('admin', 'admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', 'admin'),
+    User('Gilles', 'Gilles', 'c0c4a69b17a7955ac230bfc8db4a123eaa956ccf3c0022e68b8d4e2f5b699d1f', 'admin'),
+    User('Felix', 'Felix', '72ab994fa2eb426c051ef59cad617750bfe06d7cf6311285ff79c19c32afd236', 'user'),
+    User('Paul', 'Paul', '28f0116ef42bf718324946f13d787a1d41274a08335d52ee833d5b577f02a32a', 'user'),
 ]
 
 username_table = {u.username: u for u in users}
@@ -103,7 +104,7 @@ def authenticate(username, password):
 
 def check_role(username, role):
     user = userid_table.get(username, None)
-    if user and user.username == role:
+    if user and user.role == role:
         return True
     return False
 

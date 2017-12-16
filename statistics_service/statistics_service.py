@@ -55,10 +55,9 @@ class User(object):
         return "User(id='%s')" % self.id
 
 users = [
-    User('admin', 'admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'),
-    User('Gilles', 'admin', 'c0c4a69b17a7955ac230bfc8db4a123eaa956ccf3c0022e68b8d4e2f5b699d1f'),
-    User('Felix', 'user', '72ab994fa2eb426c051ef59cad617750bfe06d7cf6311285ff79c19c32afd236'),
-    User('Paul', 'user', '28f0116ef42bf718324946f13d787a1d41274a08335d52ee833d5b577f02a32a'),
+    User('Gilles', 'Gilles', 'c0c4a69b17a7955ac230bfc8db4a123eaa956ccf3c0022e68b8d4e2f5b699d1f'),
+    User('Felix', 'Felix', '72ab994fa2eb426c051ef59cad617750bfe06d7cf6311285ff79c19c32afd236'),
+    User('Paul', 'Paul', '28f0116ef42bf718324946f13d787a1d41274a08335d52ee833d5b577f02a32a'),
 ]
 
 username_table = {u.username: u for u in users}
