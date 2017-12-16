@@ -9,11 +9,6 @@ import json
 import pickle
 import redis
 
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas
-from io import BytesIO
-
 application = Flask(__name__)
 
 # local modules
@@ -122,146 +117,24 @@ def report():
 
     return jsonify({'succ_msg': 'report delivered'}), 200
 
+
 @application.route('/admin/stats/user_login', methods = ['GET'])
+@jwt_required()
 def user_login():
     user_login = statistics_lib.get_user_login_data()
-    if request_wants_json():
-        return jsonify(user_login), 200
-    return render_template('user_login_attempts.html', prms = user_login)
-
-@application.route('/admin/stats/user_login/fig')
-def user_login_fig():
-    user_login = statistics_lib.get_user_login_data()
-
-    user_fails = dict()
-    for user_stat in user_login:
-        if not user_fails.get(user_stat['user'], None):
-            user_fails[user_stat['user']] = 0
-        if user_stat['status'] != 'success':
-            user_fails[user_stat['user']] = user_fails[user_stat['user']] + 1
-    print(user_fails)
-
-    users = []
-    fails = []
-    for key in user_fails:
-        users.append(key)
-        fails.append(user_fails[key])
-    print(users)
-    print(fails)
-
-    df = pandas.DataFrame(dict(\
-        users=users,
-        fails=fails
-    ))
-
-    #Plotting
-    fig, ax = plt.subplots()
-    fig.set_size_inches(12, 5)
-    plt.title('User failed logon attempts')
-    ax.set_xlabel('Failed logon attempts')
-    ax.set_ylabel('Users')
-    ind = np.arange(len(df))
-    width = 0.8
-    ax.barh(ind + 1*width, df.fails, width, color='chocolate', label='success rate')
-    ax.set(yticks=ind + width, yticklabels=df.users, ylim=[width - 1, len(df)+1])
-    ax.legend()
-    plt.grid()
-    plt.show()
-
-    img = BytesIO()
-    plt.savefig(img)
-    img.seek(0)
-
-    return send_file(img, mimetype='image/png', cache_timeout=2)
+    return jsonify(user_login), 200
 
 @application.route('/admin/stats/user_bill_update', methods = ['GET'])
+@jwt_required()
 def user_bill_update():
     user_bill_update = statistics_lib.get_user_bill_update_data()
-    if request_wants_json():
-        return jsonify(user_bill_update), 200
-    return render_template('user_bill_update.html', prms = user_bill_update)
-
-@application.route('/admin/stats/user_bill_update/fig', methods = ['GET'])
-def user_bill_update_fig():
-    user_bill_update = statistics_lib.get_user_bill_update_data()
-
-    bill_update_dict = {'success': 0, 'failure': 0, 'timedout': 0, 'total': 0}
-    for bill_update_stat in user_bill_update:
-        bill_update_dict['total'] = bill_update_dict['total'] + 1
-        if bill_update_stat['status'] == 'success':
-            bill_update_dict['success'] = bill_update_dict['success'] + 1
-        elif bill_update_stat['status'] == 'failure':
-            bill_update_dict['failure'] = bill_update_dict['failure'] + 1
-        else: # timedout
-            bill_update_dict['timedout'] = bill_update_dict['timedout'] + 1
-    print(bill_update_dict)
-    success_rate = bill_update_dict['success']/bill_update_dict['total']
-    print(success_rate)
-    failure_rate = bill_update_dict['failure']/bill_update_dict['total']
-    print(failure_rate)
-    timedout_rate = bill_update_dict['timedout']/bill_update_dict['total']
-    print(timedout_rate)
-
-    # Pie chart, where the slices will be ordered and plotted counter-clockwise:
-    labels = 'Success ratio', 'Failure ratio', 'Timedout ratio'
-    sizes = [success_rate, failure_rate, timedout_rate]
-    explode = (0.1, 0, 0)
-
-    fig1, ax1 = plt.subplots()
-    ax1.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%', shadow=True, startangle=90)
-    ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-    plt.show()
-
-    img = BytesIO()
-    plt.savefig(img)
-    img.seek(0)
-
-    return send_file(img, mimetype='image/png', cache_timeout=2)
+    return jsonify(user_bill_update), 200
 
 @application.route('/admin/stats/ops_status', methods = ['GET'])
+@jwt_required()
 def ops_status():
     ops_status = statistics_lib.get_ops_status()
-    if request_wants_json():
-        return jsonify(ops_status), 200
-    return render_template('ops_status.html', prms = ops_status)
-
-@application.route('/admin/stats/ops_status/fig')
-def ops_status_fig():
-    ops_stats = statistics_lib.get_ops_status()
-
-    ops = []
-    ratios = []
-    for key in ops_stats:
-        ops.append(key)
-        ratios.append(ops_stats[key]['success']/ops_stats[key]['total'])
-    print(ops)
-    print(ratios)
-
-    df = pandas.DataFrame(dict(\
-        ops=ops,
-        ratios=ratios
-    ))
-
-    #Plotting
-    fig, ax = plt.subplots()
-    fig.set_size_inches(12, 5)
-    plt.title('Ops success rates')
-    ax.set_xlabel('Ratios')
-    ax.set_ylabel('Ops')
-    ind = np.arange(len(df))
-    width = 0.8
-    ax.barh(ind + 1*width, df.ratios, width, color='chocolate', label='success rate')
-    ax.set(yticks=ind + width, yticklabels=df.ops, ylim=[width - 1, len(df)+1])
-    ax.set_xlim([0, 1])
-    ax.legend()
-    plt.grid()
-    plt.show()
-
-    img = BytesIO()
-    plt.savefig(img)
-    img.seek(0)
-
-    return send_file(img, mimetype='image/png', cache_timeout=2)
+    return jsonify(ops_status), 200
 
 
 @application.route('/', methods = ['GET'])

@@ -1,7 +1,7 @@
 
 # python modules
 from datetime import datetime, timedelta
-from flask import Flask, jsonify, request, render_template, redirect, url_for, make_response
+from flask import Flask, jsonify, request, render_template, redirect, url_for, make_response, send_file
 from flask_jwt import JWT, jwt_required, current_identity
 from flask_jwt_extended import (
     JWTManager, jwt_required, create_access_token,
@@ -9,6 +9,7 @@ from flask_jwt_extended import (
     get_jwt_identity, set_access_cookies,
     set_refresh_cookies, unset_jwt_cookies
 )
+from io import BytesIO
 from requests.exceptions import ReadTimeout
 from threading import Thread
 from tinydb import TinyDB, Query
@@ -16,6 +17,9 @@ from werkzeug.security import safe_str_cmp
 import base64
 import hashlib
 import json
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas
 import random
 import requests
 
@@ -232,6 +236,207 @@ def refresh_token(client_id, refresh_token):
     r = requests.post(url, json = prms, headers = hdrs)
     print(r.text)
     print('token refreshed!')
+''' --------------- --------------- '''
+
+
+''' --------------- Stats --------------- '''
+@application.route('/admin/stats/user_login', methods = ['GET'])
+@jwt_required
+def user_login():
+    url = 'http://127.0.0.1:8005/admin/stats/user_login'
+    prms = {}
+    hdrs = {
+        'accept': 'application/json',
+        hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))}
+    }
+    r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
+    if r.status_code == 401:
+        return jsonify(r.json()), 401
+    user_login = r.json()
+
+    if request_wants_json():
+        return jsonify(user_login), 200
+    return render_template('user_login_attempts.html', prms = user_login)
+
+@application.route('/admin/stats/user_login/fig')
+@jwt_required
+def user_login_fig():
+    url = 'http://127.0.0.1:8005/admin/stats/user_login'
+    prms = {}
+    hdrs = {
+        'accept': 'application/json',
+        hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))}
+    }
+    r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
+    user_login = r.json()
+
+    user_fails = dict()
+    for user_stat in user_login:
+        if not user_fails.get(user_stat['user'], None):
+            user_fails[user_stat['user']] = 0
+        if user_stat['status'] != 'success':
+            user_fails[user_stat['user']] = user_fails[user_stat['user']] + 1
+    print(user_fails)
+
+    users = []
+    fails = []
+    for key in user_fails:
+        users.append(key)
+        fails.append(user_fails[key])
+    print(users)
+    print(fails)
+
+    df = pandas.DataFrame(dict(\
+        users=users,
+        fails=fails
+    ))
+
+    #Plotting
+    fig, ax = plt.subplots()
+    fig.set_size_inches(12, 5)
+    plt.title('User failed logon attempts')
+    ax.set_xlabel('Failed logon attempts')
+    ax.set_ylabel('Users')
+    ind = np.arange(len(df))
+    width = 0.8
+    ax.barh(ind + 1*width, df.fails, width, color='chocolate', label='number of logon failed attempts')
+    ax.set(yticks=ind + width, yticklabels=df.users, ylim=[width - 1, len(df)+1])
+    ax.legend()
+    plt.grid()
+    plt.show()
+
+    img = BytesIO()
+    plt.savefig(img)
+    img.seek(0)
+
+    return send_file(img, mimetype='image/png', cache_timeout=2)
+
+@application.route('/admin/stats/user_bill_update', methods = ['GET'])
+@jwt_required
+def user_bill_update():
+    url = 'http://127.0.0.1:8005/admin/stats/user_bill_update'
+    prms = {}
+    hdrs = {
+        'accept': 'application/json',
+        hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))}
+    }
+    r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
+    if r.status_code == 401:
+        return jsonify(r.json()), 401
+    user_bill_update = r.json()
+
+    if request_wants_json():
+        return jsonify(user_bill_update), 200
+    return render_template('user_bill_update.html', prms = user_bill_update)
+
+@application.route('/admin/stats/user_bill_update/fig', methods = ['GET'])
+@jwt_required
+def user_bill_update_fig():
+    url = 'http://127.0.0.1:8005/admin/stats/user_bill_update'
+    prms = {}
+    hdrs = {
+        'accept': 'application/json',
+        hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))}
+    }
+    r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
+    user_bill_update = r.json()
+
+    bill_update_dict = {'success': 0, 'failure': 0, 'timedout': 0, 'total': 0}
+    for bill_update_stat in user_bill_update:
+        bill_update_dict['total'] = bill_update_dict['total'] + 1
+        if bill_update_stat['status'] == 'success':
+            bill_update_dict['success'] = bill_update_dict['success'] + 1
+        elif bill_update_stat['status'] == 'failure':
+            bill_update_dict['failure'] = bill_update_dict['failure'] + 1
+        else: # timedout
+            bill_update_dict['timedout'] = bill_update_dict['timedout'] + 1
+    print(bill_update_dict)
+    success_rate = bill_update_dict['success']/bill_update_dict['total']
+    print(success_rate)
+    failure_rate = bill_update_dict['failure']/bill_update_dict['total']
+    print(failure_rate)
+    timedout_rate = bill_update_dict['timedout']/bill_update_dict['total']
+    print(timedout_rate)
+
+    # Pie chart, where the slices will be ordered and plotted counter-clockwise:
+    labels = 'Success ratio', 'Failure ratio', 'Timedout ratio'
+    sizes = [success_rate, failure_rate, timedout_rate]
+    explode = (0.1, 0, 0)
+
+    fig1, ax1 = plt.subplots()
+    ax1.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%', shadow=True, startangle=90)
+    ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+    plt.show()
+
+    img = BytesIO()
+    plt.savefig(img)
+    img.seek(0)
+
+    return send_file(img, mimetype='image/png', cache_timeout=2)
+
+@application.route('/admin/stats/ops_status', methods = ['GET'])
+@jwt_required
+def ops_status():
+    url = 'http://127.0.0.1:8005/admin/stats/ops_status'
+    prms = {}
+    hdrs = {
+        'accept': 'application/json',
+        hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))}
+    }
+    r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
+    if r.status_code == 401:
+        return jsonify(r.json()), 401
+    ops_status = r.json()
+
+    if request_wants_json():
+        return jsonify(ops_status), 200
+    return render_template('ops_status.html', prms = ops_status)
+
+@application.route('/admin/stats/ops_status/fig')
+@jwt_required
+def ops_status_fig():
+    url = 'http://127.0.0.1:8005/admin/stats/ops_status'
+    prms = {}
+    hdrs = {
+        'accept': 'application/json',
+        hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))}
+    }
+    r = requests.get(url, params = prms, headers = hdrs, timeout = 10)
+    ops_status = r.json()
+
+    ops = []
+    ratios = []
+    for key in ops_stats:
+        ops.append(key)
+        ratios.append(ops_stats[key]['success']/ops_stats[key]['total'])
+    print(ops)
+    print(ratios)
+
+    df = pandas.DataFrame(dict(\
+        ops=ops,
+        ratios=ratios
+    ))
+
+    #Plotting
+    fig, ax = plt.subplots()
+    fig.set_size_inches(12, 5)
+    plt.title('Ops success rates')
+    ax.set_xlabel('Ratios')
+    ax.set_ylabel('Ops')
+    ind = np.arange(len(df))
+    width = 0.8
+    ax.barh(ind + 1*width, df.ratios, width, color='chocolate', label='success rate')
+    ax.set(yticks=ind + width, yticklabels=df.ops, ylim=[width - 1, len(df)+1])
+    ax.set_xlim([0, 1])
+    ax.legend()
+    plt.grid()
+    plt.show()
+
+    img = BytesIO()
+    plt.savefig(img)
+    img.seek(0)
+
+    return send_file(img, mimetype='image/png', cache_timeout=2)
 ''' --------------- --------------- '''
 
 
