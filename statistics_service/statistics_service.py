@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('Agg')
 
 # python modules
 from flask import Flask, jsonify, request, render_template, redirect, url_for, make_response, send_file
