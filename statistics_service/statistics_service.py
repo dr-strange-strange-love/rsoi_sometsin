@@ -134,7 +134,7 @@ def user_login_fig():
     user_login = statistics_lib.get_user_login_data()
 
     user_fails = dict()
-    for user_stat in user_stats:
+    for user_stat in user_login:
         if not user_fails.get(user_stat['user'], None):
             user_fails[user_stat['user']] = 0
         if user_stat['status'] != 'success':
