@@ -253,7 +253,7 @@ def refresh_token(client_id, refresh_token):
 @jwt_required
 def user_login():
     if not check_role(get_jwt_identity(), 'admin'):
-        return jsonify('err_msg': 'admin resource, access denied'), 400
+        return jsonify({'err_msg': 'admin resource, access denied'}), 400
 
     # get user tokens
     url = 'http://127.0.0.1:8004/user/{0}/tokens'.format(get_jwt_identity())
@@ -339,7 +339,7 @@ def user_login_fig():
 @jwt_required
 def user_bill_update():
     if not check_role(get_jwt_identity(), 'admin'):
-        return jsonify('err_msg': 'admin resource, access denied'), 400
+        return jsonify({'err_msg': 'admin resource, access denied'}), 400
 
     # get user tokens
     url = 'http://127.0.0.1:8004/user/{0}/tokens'.format(get_jwt_identity())
@@ -417,7 +417,7 @@ def user_bill_update_fig():
 @jwt_required
 def ops_status():
     if not check_role(get_jwt_identity(), 'admin'):
-        return jsonify('err_msg': 'admin resource, access denied'), 400
+        return jsonify({'err_msg': 'admin resource, access denied'}), 400
 
     # get user tokens
     url = 'http://127.0.0.1:8004/user/{0}/tokens'.format(get_jwt_identity())
