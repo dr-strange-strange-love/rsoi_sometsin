@@ -1,6 +1,7 @@
 # python modules
 from flask import Flask, jsonify, request, render_template, redirect, url_for, make_response, send_file
 from flask_jwt import JWT, jwt_required, current_identity
+from threading import Thread
 from werkzeug.security import safe_str_cmp
 import json
 import pickle
@@ -33,7 +34,8 @@ def callback(ch, method, properties, body):
     report_stats(json.loads(body))
 
 channel.basic_consume(callback, queue='rsoi_stats_sender', no_ack=True)
-channel.start_consuming()
+thread = Thread(target = channel.start_consuming)
+thread.start()
 
 
 # Tests whether to return json or render_template
