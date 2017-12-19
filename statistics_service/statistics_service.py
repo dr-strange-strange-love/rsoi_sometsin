@@ -4,6 +4,7 @@ from flask_jwt import JWT, jwt_required, current_identity
 from werkzeug.security import safe_str_cmp
 import json
 import pickle
+import pika
 import redis
 
 application = Flask(__name__)
@@ -22,6 +23,17 @@ if application.debug is not True:
     formatter = logging.Formatter("%(asctime)s - %(module)s - %(lineno)d - %(levelname)s - %(message)s")
     handler.setFormatter(formatter)
     application.logger.addHandler(handler)
+
+connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+channel = connection.channel()
+channel.queue_declare(queue='rsoi_stats_sender')
+channel.queue_declare(queue='rsoi_stats_feedback')
+
+def callback(ch, method, properties, body):
+    report_stats(json.loads(body))
+
+channel.basic_consume(callback, queue='rsoi_stats_sender', no_ack=True)
+channel.start_consuming()
 
 
 # Tests whether to return json or render_template
@@ -94,6 +106,38 @@ def connect():
 ''' --------------- --------------- '''
 
 
+def report_stats(report_dict):
+    if not get_value(rds, report_dict['hash']):
+        set_value(rds, report_dict['hash'], True)
+        statistics_lib.push_event(report_dict['job'],
+                                  report_dict['status'],
+                                  report_dict['user'],
+                                  report_dict['time'],
+                                  msg_json = report_dict.get('msg_json', None),
+                                  status_code = report_dict.get('status_code', None),
+                                  url = report_dict.get('url', None),
+                                  payload = report_dict.get('payload', None))
+    else:
+        channel.basic_publish(
+            exchange='',
+            routing_key='rsoi_stats_feedback',
+            body=json.dumps({
+                'err_msg': '{0} has already been processed'.format(report_dict['hash']),
+                'report': report_dict
+            }),
+            properties=pika.BasicProperties(delivery_mode = 2,)
+        )
+
+    channel.basic_publish(
+        exchange='',
+        routing_key='rsoi_stats_feedback',
+        body=json.dumps({
+            'succ_msg': '{0} reported OK'.format(report_dict['hash']),
+            'report': report_dict
+        }),
+        properties=pika.BasicProperties(delivery_mode = 2,)
+    )
+
 @application.route('/report', methods = ['PATCH'])
 def report():
     report_json = request.get_json(force=True)
@@ -117,19 +161,16 @@ def report():
 
 
 @application.route('/admin/stats/user_login', methods = ['GET'])
-@jwt_required()
 def user_login():
     user_login = statistics_lib.get_user_login_data()
     return jsonify(user_login), 200
 
 @application.route('/admin/stats/user_bill_update', methods = ['GET'])
-@jwt_required()
 def user_bill_update():
     user_bill_update = statistics_lib.get_user_bill_update_data()
     return jsonify(user_bill_update), 200
 
 @application.route('/admin/stats/ops_status', methods = ['GET'])
-@jwt_required()
 def ops_status():
     ops_status = statistics_lib.get_ops_status()
     return jsonify(ops_status), 200

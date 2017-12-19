@@ -22,7 +22,9 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas
+import pika
 import random
+import redis
 import requests
 
 application = Flask(__name__)
@@ -40,12 +42,37 @@ if application.debug is not True:
 # local modules
 import aggregation_lib
 
+rds = redis.Redis('127.0.0.1')
+
 thread = Thread(target = aggregation_lib.reset_billing_total_queue)
 thread.start()
 thread = Thread(target = aggregation_lib.statistics_queue_async)
 thread.start()
+'''
 thread = Thread(target = aggregation_lib.statistics_queue_sync)
 thread.start()
+'''
+connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+channel = connection.channel()
+channel.queue_declare(queue='rsoi_stats_sender')
+channel.queue_declare(queue='rsoi_stats_feedback')
+
+def callback(ch, method, properties, body):
+    feedback_stats(json.loads(body))
+
+channel.basic_consume(callback, queue='rsoi_stats_feedback', no_ack=True)
+channel.start_consuming()
+
+
+# Set redis value
+def set_value(rds, key, value):
+    rds.set(key, pickle.dumps(value), ex=12*60*60)
+# Get redis value
+def get_value(rds, key):
+    pickled_value = rds.get(key)
+    if pickled_value is None:
+        return None
+    return pickle.loads(pickled_value)
 
 
 # Tests whether to return json or render_template
@@ -150,6 +177,19 @@ def login():
         hdrs = {'Authorization': 'Basic {0}'.format(application.config['SECRET_KEY'])}
         r = requests.post(url, json = prms, headers = hdrs)
         print(r.headers)
+        channel.basic_publish(
+            exchange='',
+            routing_key='rsoi_stats_report',
+            body=json.dumps({
+                'job': 'user login',
+                'status': 'success',
+                'user': username,
+                'time': str(datetime.utcnow()),
+                'hash': '%032x' % random.getrandbits(128)
+            }),
+            properties=pika.BasicProperties(delivery_mode = 2,)
+        )
+        '''
         aggregation_lib.statistics_q_sync.put({
             'job': 'user login',
             'status': 'success',
@@ -157,10 +197,24 @@ def login():
             'time': str(datetime.utcnow()),
             'hash': '%032x' % random.getrandbits(128)
         })
+        '''
         resp = make_response(jsonify({'succ_msg': 'logged in, token set up'}))
         set_access_cookies(resp, r.headers['Cookie'])
         return resp, 200
     else:
+        channel.basic_publish(
+            exchange='',
+            routing_key='rsoi_stats_report',
+            body=json.dumps({
+                'job': 'user login',
+                'status': 'failure',
+                'user': username,
+                'time': str(datetime.utcnow()),
+                'hash': '%032x' % random.getrandbits(128)
+            }),
+            properties=pika.BasicProperties(delivery_mode = 2,)
+        )
+        '''
         aggregation_lib.statistics_q_sync.put({
             'job': 'user login',
             'status': 'failure',
@@ -168,6 +222,7 @@ def login():
             'time': str(datetime.utcnow()),
             'hash': '%032x' % random.getrandbits(128)
         })
+        '''
         return jsonify({'err_msg': 'user doesnt exist'}), 400
 
 @application.route('/', methods = ['GET'])
@@ -247,6 +302,11 @@ def refresh_token(client_id, refresh_token):
     print(r.text)
     print('token refreshed!')
 ''' --------------- --------------- '''
+
+
+def feedback_stats(feedback_dict):
+    if feedback_dict.get('err_msg', None):
+        application.logger.warning('This report couldnt be processed by statistics service: {0}'.format(str(feedback_dict['report'])))
 
 
 ''' --------------- Stats --------------- '''
