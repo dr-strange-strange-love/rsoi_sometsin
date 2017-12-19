@@ -180,7 +180,7 @@ def login():
         print(r.headers)
         channel.basic_publish(
             exchange='',
-            routing_key='rsoi_stats_report',
+            routing_key='rsoi_stats_sender',
             body=json.dumps({
                 'job': 'user login',
                 'status': 'success',
@@ -205,7 +205,7 @@ def login():
     else:
         channel.basic_publish(
             exchange='',
-            routing_key='rsoi_stats_report',
+            routing_key='rsoi_stats_sender',
             body=json.dumps({
                 'job': 'user login',
                 'status': 'failure',
