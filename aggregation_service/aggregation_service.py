@@ -61,7 +61,8 @@ def callback(ch, method, properties, body):
     feedback_stats(json.loads(body))
 
 channel.basic_consume(callback, queue='rsoi_stats_feedback', no_ack=True)
-channel.start_consuming()
+thread = Thread(target = channel.start_consuming)
+thread.start()
 
 
 # Set redis value
