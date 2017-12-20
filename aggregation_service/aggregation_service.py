@@ -42,16 +42,14 @@ if application.debug is not True:
 # local modules
 import aggregation_lib
 
-rds = redis.Redis('127.0.0.1')
+rds = redis.Redis('127.0.0.1', db=1) # for stats
 
 thread = Thread(target = aggregation_lib.reset_billing_total_queue)
 thread.start()
 thread = Thread(target = aggregation_lib.statistics_queue_async)
 thread.start()
-'''
-thread = Thread(target = aggregation_lib.statistics_queue_sync)
+thread = Thread(target = sent_stats_redis_scanner)
 thread.start()
-'''
 connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
 channel = connection.channel()
 channel.queue_declare(queue='rsoi_stats_sender')
@@ -74,6 +72,38 @@ def get_value(rds, key):
     if pickled_value is None:
         return None
     return pickle.loads(pickled_value)
+def delete_key(rds, key):
+    rds.delete(key)
+
+
+def sent_stats_redis_scanner():
+    count_max = 5
+
+    while True:
+        keys = rds.keys()
+        for key in keys:
+            val = get_value(rds, key)
+            time_diff = datetime.utcnow() - val['time']
+            if time_diff > timedelta(seconds=5):
+                val['time'] = datetime.utcnow()
+                if not val.get('count', None):
+                    val['count'] = 1
+                else:
+                    val['count'] = val['count'] + 1
+                if val['count'] >= count_max:
+                    delete_key(rds, key)
+                    application.logger.warning('This report timeouted: {0}'.format(str(val)))
+                else:
+                    set_value(rds, key, val)
+                    # sending login stats
+                    hash_val = '%032x' % random.getrandbits(128)
+                    send_dict = val
+                    channel.basic_publish(
+                        exchange='',
+                        routing_key='rsoi_stats_sender',
+                        body=json.dumps(send_dict),
+                        properties=pika.BasicProperties(delivery_mode = 2,)
+                    )
 
 
 # Tests whether to return json or render_template
@@ -178,16 +208,20 @@ def login():
         hdrs = {'Authorization': 'Basic {0}'.format(application.config['SECRET_KEY'])}
         r = requests.post(url, json = prms, headers = hdrs)
         print(r.headers)
+        # sending login stats
+        hash_val = '%032x' % random.getrandbits(128)
+        send_dict = {
+            'job': 'user login',
+            'status': 'success',
+            'user': username,
+            'time': str(datetime.utcnow()),
+            'hash': hash_val
+        }
+        set_value(rds, 'sent_' + hash_val, send_dict)
         channel.basic_publish(
             exchange='',
             routing_key='rsoi_stats_sender',
-            body=json.dumps({
-                'job': 'user login',
-                'status': 'success',
-                'user': username,
-                'time': str(datetime.utcnow()),
-                'hash': '%032x' % random.getrandbits(128)
-            }),
+            body=json.dumps(send_dict),
             properties=pika.BasicProperties(delivery_mode = 2,)
         )
         '''
@@ -203,16 +237,19 @@ def login():
         set_access_cookies(resp, r.headers['Cookie'])
         return resp, 200
     else:
+        hash_val = '%032x' % random.getrandbits(128)
+        send_dict = {
+            'job': 'user login',
+            'status': 'failure',
+            'user': username,
+            'time': str(datetime.utcnow()),
+            'hash': hash_val
+        }
+        set_value(rds, 'sent_' + hash_val, send_dict)
         channel.basic_publish(
             exchange='',
             routing_key='rsoi_stats_sender',
-            body=json.dumps({
-                'job': 'user login',
-                'status': 'failure',
-                'user': username,
-                'time': str(datetime.utcnow()),
-                'hash': '%032x' % random.getrandbits(128)
-            }),
+            body=json.dumps(send_dict),
             properties=pika.BasicProperties(delivery_mode = 2,)
         )
         '''
@@ -306,6 +343,7 @@ def refresh_token(client_id, refresh_token):
 
 
 def feedback_stats(feedback_dict):
+    delete_key(rds, 'sent_' + feedback_dict['report']['hash'])
     if feedback_dict.get('err_msg', None):
         application.logger.warning('This report couldnt be processed by statistics service: {0}'.format(str(feedback_dict['report'])))
 
