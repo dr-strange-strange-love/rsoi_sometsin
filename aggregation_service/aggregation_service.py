@@ -79,11 +79,14 @@ def sent_stats_redis_scanner():
     count_max = 5
 
     while True:
-        application.logger.warning('sent_stats_redis_scanner working')
+        application.logger.warning('sent_stats_redis_scanner LOOPING')
         keys = rds.keys()
         for key in keys:
+            application.logger.warning('{0}'.format(str(key)))
             val = get_value(rds, key)
+            application.logger.warning('{0}'.format(str(val)))
             time_diff = datetime.utcnow() - val['time']
+            application.logger.warning('{0}'.format(str(time_diff)))
             if time_diff > timedelta(seconds=5):
                 val['time'] = datetime.utcnow()
                 if not val.get('count', None):
@@ -96,7 +99,6 @@ def sent_stats_redis_scanner():
                 else:
                     set_value(rds, key, val)
                     # sending login stats
-                    hash_val = '%032x' % random.getrandbits(128)
                     send_dict = val
                     channel.basic_publish(
                         exchange='',
