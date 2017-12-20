@@ -48,8 +48,6 @@ thread = Thread(target = aggregation_lib.reset_billing_total_queue)
 thread.start()
 thread = Thread(target = aggregation_lib.statistics_queue_async)
 thread.start()
-thread = Thread(target = sent_stats_redis_scanner)
-thread.start()
 connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
 channel = connection.channel()
 channel.queue_declare(queue='rsoi_stats_sender')
@@ -104,6 +102,9 @@ def sent_stats_redis_scanner():
                         body=json.dumps(send_dict),
                         properties=pika.BasicProperties(delivery_mode = 2,)
                     )
+
+thread = Thread(target = sent_stats_redis_scanner)
+thread.start()
 
 
 # Tests whether to return json or render_template
