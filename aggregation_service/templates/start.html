@@ -12,9 +12,13 @@
         box-sizing: border-box;
     }
 
+    input[type=text]:focus {
+        background-color: lightblue;
+    }
+
     input[type=submit] {
         width: 100%;
-        background-color: #4CAF50;
+        background-color: #3db1e2;
         color: white;
         padding: 14px 20px;
         margin: 8px 0;
@@ -24,11 +28,11 @@
     }
 
     input[type=submit]:hover {
-        background-color: #45a049;
+        background-color: #0678a8;
     }
 
     div {
-        border-radius: 5px;
+        border-radius: 20px;
         background-color: #f2f2f2;
         padding: 20px;
     }
@@ -42,6 +46,10 @@
         border-radius: 4px;
         background-color: #f8f8f8;
         resize: none;
+    }
+
+    textarea:focus {
+        background-color: lightblue;
     }
 </style>
 
@@ -159,32 +167,36 @@ function validateRemoveGoods() {
 <body>
 
 <form name="getGoodsForm" onsubmit="return validateGetGoods()">
-Page: <input type="text" name="page"> <p id="getGoodsFormPageField"></p>
-Size: <input type="text" name="size"> <p id="getGoodsFormSizeField"></p>
+<input type="text" name="page" placeholder="Page..."> <p id="getGoodsFormPageField"></p>
+<input type="text" name="size" placeholder="Size..."> <p id="getGoodsFormSizeField"></p>
 <input type="submit" value="Get goods (GET)">
 </form>
 <p id="getGoodsFormOutput"></p>
 <br>
+<br>
+<br>
 
 <textarea rows="4" cols="50" name="goods_list" form="createOrderFormID">[{"title": "kittens", "quantity": 2, "city": "Sochi"}]</textarea>
 <p id="createOrderFormIDGoodsListField"></p>
-<br>
 <form name="createOrderForm" onsubmit="return validateCreateOrder()" id="createOrderFormID">
 <input type="submit" value="Create order (POST)">
 </form>
 <br>
+<br>
+<br>
 
 <textarea rows="4" cols="50" name="billing_dict" form="performBillingFormID">{"sum": 1000, "complete": true}</textarea>
 <p id="performBillingFormBillingDictField"></p>
-<br>
 <form name="performBillingForm" onsubmit="return validatePerformBilling()" id="performBillingFormID">
-Order: <input type="text" name="order"> <p id="performBillingFormOrderField"></p>
+<input type="text" name="order" placeholder="Order..."> <p id="performBillingFormOrderField"></p>
 <input type="submit" value="Perform billing (PATCH)">
 </form>
 <br>
+<br>
+<br>
 
 <form name="removeGoodsForm" onsubmit="return validateRemoveGoods()" id="removeGoodsFormID">
-Order: <input type="text" name="order"> <p id="removeGoodsFormOrderField"></p>
+<input type="text" name="order" placeholder="Order..."> <p id="removeGoodsFormOrderField"></p>
 <input type="submit" value="Remove goods (DELETE)">
 </form>
 <br>
