@@ -108,7 +108,7 @@ def sent_stats_redis_scanner():
                     )
         sleep(2)
 
-t1 = threading.Lock()
+t1 = Lock()
 if t1.acquire():
     thread = Thread(target = sent_stats_redis_scanner)
     thread.start()
