@@ -102,8 +102,6 @@ t1_lock = Lock()
 if t1_lock.acquire():
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
     channel = connection.channel()
-    channel.queue_declare(queue='rsoi_stats_sender')
-    channel.queue_declare(queue='rsoi_stats_feedback')
 
     def callback(ch, method, properties, body):
         feedback_stats(json.loads(body))
