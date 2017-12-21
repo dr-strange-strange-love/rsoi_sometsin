@@ -7,7 +7,7 @@ User=root
 Group=nginx
 WorkingDirectory=/srv/www/rsoi_services/aggregation_service
 Environment="PATH=/root/anaconda3/envs/rsoi_env_36/bin"
-ExecStart=/root/anaconda3/envs/rsoi_env_36/bin/gunicorn --workers 8 --timeout 120 --bind unix:rsoi_aggregation_service.sock -m 007 wsgi
+ExecStart=/root/anaconda3/envs/rsoi_env_36/bin/gunicorn --workers 8 --timeout 120 --bind unix:rsoi_aggregation_service.sock -m 007 wsgi --preload
 
 [Install]
 WantedBy=multi-user.target
