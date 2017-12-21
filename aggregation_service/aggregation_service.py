@@ -100,9 +100,6 @@ def sent_stats_redis_scanner():
 
 t1_lock = Lock()
 if t1_lock.acquire():
-    thread = Thread(target = sent_stats_redis_scanner)
-    thread.start()
-    
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
     channel = connection.channel()
     channel.queue_declare(queue='rsoi_stats_sender')
@@ -113,6 +110,9 @@ if t1_lock.acquire():
 
     channel.basic_consume(callback, queue='rsoi_stats_feedback', no_ack=True)
     thread = Thread(target = channel.start_consuming)
+    thread.start()
+
+    thread = Thread(target = sent_stats_redis_scanner)
     thread.start()
 
 
