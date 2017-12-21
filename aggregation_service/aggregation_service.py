@@ -79,7 +79,6 @@ def sent_stats_redis_scanner():
     count_max = 5
 
     while True:
-        application.logger.warning('sent_stats_redis_scanner LOOPING')
         keys = rds.keys()
         for key in keys:
             application.logger.warning('{0}'.format(str(key)))
