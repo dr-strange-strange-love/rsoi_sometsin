@@ -13,7 +13,7 @@ from flask_jwt_extended import (
 )
 from io import BytesIO
 from requests.exceptions import ReadTimeout
-from threading import Thread
+from threading import Thread, Lock
 from time import sleep
 from tinydb import TinyDB, Query
 from werkzeug.security import safe_str_cmp
@@ -88,7 +88,7 @@ def sent_stats_redis_scanner():
             time_diff = datetime.utcnow() - datetime.strptime(val['time'], '%Y-%m-%d %H:%M:%S.%f')
             application.logger.warning('{0}'.format(str(time_diff)))
             if time_diff > timedelta(seconds=5):
-                val['time'] = datetime.utcnow()
+                val['time'] = str(datetime.utcnow())
                 if not val.get('count', None):
                     val['count'] = 1
                 else:
@@ -108,8 +108,10 @@ def sent_stats_redis_scanner():
                     )
         sleep(2)
 
-thread = Thread(target = sent_stats_redis_scanner)
-thread.start()
+t1 = threading.Lock()
+if t1.acquire(wait=False)
+    thread = Thread(target = sent_stats_redis_scanner)
+    thread.start()
 
 
 # Tests whether to return json or render_template
