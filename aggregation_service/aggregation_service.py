@@ -85,7 +85,7 @@ def sent_stats_redis_scanner():
             application.logger.warning('{0}'.format(str(key)))
             val = get_value(rds, key)
             application.logger.warning('{0}'.format(str(val)))
-            time_diff = datetime.utcnow() - val['time']
+            time_diff = datetime.utcnow() - datetime.strptime(val['time'], '%Y-%m-%d %H:%M:%S.%f')
             application.logger.warning('{0}'.format(str(time_diff)))
             if time_diff > timedelta(seconds=5):
                 val['time'] = datetime.utcnow()
