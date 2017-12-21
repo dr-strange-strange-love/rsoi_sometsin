@@ -103,6 +103,12 @@ if t1_lock.acquire():
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
     channel = connection.channel()
 
+    def feedback_stats(feedback_dict):
+        application.logger.warning('DELETING' + 'sent_' + feedback_dict['report']['hash'])
+        delete_key(rds, 'sent_' + feedback_dict['report']['hash'])
+        if feedback_dict.get('err_msg', None):
+            application.logger.warning('This report couldnt be processed by statistics service: {0}'.format(str(feedback_dict['report'])))
+
     def callback(ch, method, properties, body):
         feedback_stats(json.loads(body))
 
@@ -348,13 +354,6 @@ def refresh_token(client_id, refresh_token):
     print(r.text)
     print('token refreshed!')
 ''' --------------- --------------- '''
-
-
-def feedback_stats(feedback_dict):
-    application.logger.warning('DELETING' + 'sent_' + feedback_dict['report']['hash'])
-    delete_key(rds, 'sent_' + feedback_dict['report']['hash'])
-    if feedback_dict.get('err_msg', None):
-        application.logger.warning('This report couldnt be processed by statistics service: {0}'.format(str(feedback_dict['report'])))
 
 
 ''' --------------- Stats --------------- '''
