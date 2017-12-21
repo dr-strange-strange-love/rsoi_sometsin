@@ -59,8 +59,7 @@ def report_stats(report_dict):
             body=json.dumps({
                 'succ_msg': '{0} reported OK'.format(report_dict['hash']),
                 'report': report_dict
-            }),
-            properties=pika.BasicProperties(delivery_mode = 2,)
+            })
         )
     else:
         channel.basic_publish(
@@ -69,8 +68,7 @@ def report_stats(report_dict):
             body=json.dumps({
                 'err_msg': '{0} has already been processed'.format(report_dict['hash']),
                 'report': report_dict
-            }),
-            properties=pika.BasicProperties(delivery_mode = 2,)
+            })
         )
 
 def callback(ch, method, properties, body):

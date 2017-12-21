@@ -96,8 +96,7 @@ def sent_stats_redis_scanner():
                     channel.basic_publish(
                         exchange='',
                         routing_key='rsoi_stats_sender',
-                        body=json.dumps(send_dict),
-                        properties=pika.BasicProperties(delivery_mode = 2,)
+                        body=json.dumps(send_dict)
                     )
         sleep(2)
 
@@ -237,8 +236,7 @@ def login():
         channel.basic_publish(
             exchange='',
             routing_key='rsoi_stats_sender',
-            body=json.dumps(send_dict),
-            properties=pika.BasicProperties(delivery_mode = 2,)
+            body=json.dumps(send_dict)
         )
         '''
         aggregation_lib.statistics_q_sync.put({
@@ -265,8 +263,7 @@ def login():
         channel.basic_publish(
             exchange='',
             routing_key='rsoi_stats_sender',
-            body=json.dumps(send_dict),
-            properties=pika.BasicProperties(delivery_mode = 2,)
+            body=json.dumps(send_dict)
         )
         '''
         aggregation_lib.statistics_q_sync.put({
