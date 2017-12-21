@@ -12,8 +12,9 @@ from flask_jwt_extended import (
     set_refresh_cookies, unset_jwt_cookies
 )
 from io import BytesIO
+from multiprocessing import Lock
 from requests.exceptions import ReadTimeout
-from threading import Thread, Lock
+from threading import Thread
 from time import sleep
 from tinydb import TinyDB, Query
 from werkzeug.security import safe_str_cmp
@@ -108,8 +109,8 @@ def sent_stats_redis_scanner():
                     )
         sleep(2)
 
-t1 = Lock()
-if t1.acquire():
+t1_lock = Lock()
+if t1_lock.acquire():
     thread = Thread(target = sent_stats_redis_scanner)
     thread.start()
 
