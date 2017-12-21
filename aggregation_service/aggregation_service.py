@@ -14,6 +14,7 @@ from flask_jwt_extended import (
 from io import BytesIO
 from requests.exceptions import ReadTimeout
 from threading import Thread
+from time import sleep
 from tinydb import TinyDB, Query
 from werkzeug.security import safe_str_cmp
 import base64
@@ -105,6 +106,7 @@ def sent_stats_redis_scanner():
                         body=json.dumps(send_dict),
                         properties=pika.BasicProperties(delivery_mode = 2,)
                     )
+        sleep(2)
 
 thread = Thread(target = sent_stats_redis_scanner)
 thread.start()
