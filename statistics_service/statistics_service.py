@@ -1,6 +1,7 @@
 # python modules
 from flask import Flask, jsonify, request, render_template, redirect, url_for, make_response, send_file
 from flask_jwt import JWT, jwt_required, current_identity
+from multiprocessing import Lock
 from threading import Thread
 from werkzeug.security import safe_str_cmp
 import json
@@ -25,17 +26,19 @@ if application.debug is not True:
     handler.setFormatter(formatter)
     application.logger.addHandler(handler)
 
-connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
-channel = connection.channel()
-channel.queue_declare(queue='rsoi_stats_sender')
-channel.queue_declare(queue='rsoi_stats_feedback')
+t1_lock = Lock()
+if t1_lock.acquire():
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+    channel = connection.channel()
+    channel.queue_declare(queue='rsoi_stats_sender')
+    channel.queue_declare(queue='rsoi_stats_feedback')
 
-def callback(ch, method, properties, body):
-    report_stats(json.loads(body))
+    def callback(ch, method, properties, body):
+        report_stats(json.loads(body))
 
-channel.basic_consume(callback, queue='rsoi_stats_sender', no_ack=True)
-thread = Thread(target = channel.start_consuming)
-thread.start()
+    channel.basic_consume(callback, queue='rsoi_stats_sender', no_ack=True)
+    thread = Thread(target = channel.start_consuming)
+    thread.start()
 
 
 # Tests whether to return json or render_template
@@ -119,6 +122,16 @@ def report_stats(report_dict):
                                   status_code = report_dict.get('status_code', None),
                                   url = report_dict.get('url', None),
                                   payload = report_dict.get('payload', None))
+
+        channel.basic_publish(
+            exchange='',
+            routing_key='rsoi_stats_feedback',
+            body=json.dumps({
+                'succ_msg': '{0} reported OK'.format(report_dict['hash']),
+                'report': report_dict
+            }),
+            properties=pika.BasicProperties(delivery_mode = 2,)
+        )
     else:
         channel.basic_publish(
             exchange='',
@@ -129,16 +142,6 @@ def report_stats(report_dict):
             }),
             properties=pika.BasicProperties(delivery_mode = 2,)
         )
-
-    channel.basic_publish(
-        exchange='',
-        routing_key='rsoi_stats_feedback',
-        body=json.dumps({
-            'succ_msg': '{0} reported OK'.format(report_dict['hash']),
-            'report': report_dict
-        }),
-        properties=pika.BasicProperties(delivery_mode = 2,)
-    )
 
 @application.route('/report', methods = ['PATCH'])
 def report():
