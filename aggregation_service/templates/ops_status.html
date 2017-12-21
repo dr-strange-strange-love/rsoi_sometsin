@@ -31,9 +31,10 @@ th {
         var prmsj = {{ prms|tojson }};
         var keys = Object.keys(prmsj)
 
-        document.getElementById("title").innerHTML = "<table style='width:96%', align='center', border=0><th>Ops report</th></table>"
-        document.getElementById("plot").innerHTML = "<table style='width:96%', align='center', border=0><th>" +
-        "<img src='/admin/stats/ops_status/fig' alt='Plot placeholder' height='500'></th></table>"
+        document.getElementById("title").innerHTML = "<table style='width:96%', align='center', border=0><th>Ops report</th></table>";
+        document.getElementById("plot").innerHTML = "<table style='width:96%', align='center', border=0>" +
+        "<th style='text-align:center;background-color:white;'>" +
+        "<img src='/admin/stats/ops_status/fig' alt='Plot placeholder' height='500'></th></table>";
 
         var out = "<table style='width:96%', align='center', border=1>" +
         "<colgroup><col style='width:20%'><col style='width:15%'><col style='width:15%'>" +
