@@ -52,6 +52,9 @@ thread.start()
 thread = Thread(target = aggregation_lib.statistics_queue_async)
 thread.start()
 
+connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+channel = connection.channel()
+
 
 # Set redis value
 def set_value(rds, key, value):
@@ -98,20 +101,19 @@ def sent_stats_redis_scanner():
                     )
         sleep(2)
 
+
+def feedback_stats(feedback_dict):
+    application.logger.warning('DELETING' + 'sent_' + feedback_dict['report']['hash'])
+    delete_key(rds, 'sent_' + feedback_dict['report']['hash'])
+    if feedback_dict.get('err_msg', None):
+        application.logger.warning('This report couldnt be processed by statistics service: {0}'.format(str(feedback_dict['report'])))
+
+def callback(ch, method, properties, body):
+    feedback_stats(json.loads(body))
+
+
 t1_lock = Lock()
 if t1_lock.acquire():
-    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
-    channel = connection.channel()
-
-    def feedback_stats(feedback_dict):
-        application.logger.warning('DELETING' + 'sent_' + feedback_dict['report']['hash'])
-        delete_key(rds, 'sent_' + feedback_dict['report']['hash'])
-        if feedback_dict.get('err_msg', None):
-            application.logger.warning('This report couldnt be processed by statistics service: {0}'.format(str(feedback_dict['report'])))
-
-    def callback(ch, method, properties, body):
-        feedback_stats(json.loads(body))
-
     channel.basic_consume(callback, queue='rsoi_stats_feedback', no_ack=True)
     thread = Thread(target = channel.start_consuming)
     thread.start()

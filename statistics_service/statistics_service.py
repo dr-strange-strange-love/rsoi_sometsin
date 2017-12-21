@@ -16,6 +16,9 @@ import statistics_lib
 
 rds = redis.Redis('127.0.0.1')
 
+connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+channel = connection.channel()
+
 if application.debug is not True:
     import logging
     from logging.handlers import RotatingFileHandler
@@ -38,46 +41,43 @@ def get_value(rds, key):
     return pickle.loads(pickled_value)
 
 
+def report_stats(report_dict):
+    if not get_value(rds, report_dict['hash']):
+        set_value(rds, report_dict['hash'], True)
+        statistics_lib.push_event(report_dict['job'],
+                                  report_dict['status'],
+                                  report_dict['user'],
+                                  report_dict['time'],
+                                  msg_json = report_dict.get('msg_json', None),
+                                  status_code = report_dict.get('status_code', None),
+                                  url = report_dict.get('url', None),
+                                  payload = report_dict.get('payload', None))
+
+        channel.basic_publish(
+            exchange='',
+            routing_key='rsoi_stats_feedback',
+            body=json.dumps({
+                'succ_msg': '{0} reported OK'.format(report_dict['hash']),
+                'report': report_dict
+            }),
+            properties=pika.BasicProperties(delivery_mode = 2,)
+        )
+    else:
+        channel.basic_publish(
+            exchange='',
+            routing_key='rsoi_stats_feedback',
+            body=json.dumps({
+                'err_msg': '{0} has already been processed'.format(report_dict['hash']),
+                'report': report_dict
+            }),
+            properties=pika.BasicProperties(delivery_mode = 2,)
+        )
+
+def callback(ch, method, properties, body):
+        report_stats(json.loads(body))
+
 t1_lock = Lock()
 if t1_lock.acquire():
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
-    channel = connection.channel()
-
-    def report_stats(report_dict):
-        if not get_value(rds, report_dict['hash']):
-            set_value(rds, report_dict['hash'], True)
-            statistics_lib.push_event(report_dict['job'],
-                                      report_dict['status'],
-                                      report_dict['user'],
-                                      report_dict['time'],
-                                      msg_json = report_dict.get('msg_json', None),
-                                      status_code = report_dict.get('status_code', None),
-                                      url = report_dict.get('url', None),
-                                      payload = report_dict.get('payload', None))
-
-            channel.basic_publish(
-                exchange='',
-                routing_key='rsoi_stats_feedback',
-                body=json.dumps({
-                    'succ_msg': '{0} reported OK'.format(report_dict['hash']),
-                    'report': report_dict
-                }),
-                properties=pika.BasicProperties(delivery_mode = 2,)
-            )
-        else:
-            channel.basic_publish(
-                exchange='',
-                routing_key='rsoi_stats_feedback',
-                body=json.dumps({
-                    'err_msg': '{0} has already been processed'.format(report_dict['hash']),
-                    'report': report_dict
-                }),
-                properties=pika.BasicProperties(delivery_mode = 2,)
-            )
-
-    def callback(ch, method, properties, body):
-            report_stats(json.loads(body))
-
     channel.basic_consume(callback, queue='rsoi_stats_sender', no_ack=True)
     thread = Thread(target = channel.start_consuming)
     thread.start()
