@@ -14,7 +14,7 @@ application = Flask(__name__)
 # local modules
 import statistics_lib
 
-rds = redis.Redis('127.0.0.1')
+rds = redis.Redis('127.0.0.1', db=2)
 
 connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
 channel = connection.channel()

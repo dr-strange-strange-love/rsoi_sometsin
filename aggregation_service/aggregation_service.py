@@ -75,11 +75,8 @@ def sent_stats_redis_scanner():
     while True:
         keys = rds.keys()
         for key in keys:
-            application.logger.warning('{0}'.format(str(key)))
             val = get_value(rds, key)
-            application.logger.warning('{0}'.format(str(val)))
             time_diff = datetime.utcnow() - datetime.strptime(str(val['time']), '%Y-%m-%d %H:%M:%S.%f')
-            application.logger.warning('{0}'.format(str(time_diff)))
             if time_diff > timedelta(seconds=5):
                 val['time'] = str(datetime.utcnow())
                 if not val.get('count', None):
@@ -88,7 +85,7 @@ def sent_stats_redis_scanner():
                     val['count'] = val['count'] + 1
                 if val['count'] >= count_max:
                     delete_key(rds, key)
-                    application.logger.warning('This report timeouted: {0}'.format(str(val)))
+                    application.logger.warning('[TMOUT_STATS] This report timeouted: {0}'.format(str(val)))
                 else:
                     set_value(rds, key, val)
                     # sending login stats
@@ -98,14 +95,17 @@ def sent_stats_redis_scanner():
                         routing_key='rsoi_stats_sender',
                         body=json.dumps(send_dict)
                     )
-        sleep(2)
+        sleep(1)
 
 
 def feedback_stats(feedback_dict):
-    application.logger.warning('DELETING' + 'sent_' + feedback_dict['report']['hash'])
+    application.logger.warning('[HASH_STATS] Deleting hash: ' + 'sent_' + feedback_dict['report']['hash'])
     delete_key(rds, 'sent_' + feedback_dict['report']['hash'])
+    if feedback_dict.get('succ_msg', None):
+        application.logger.warning('[SUCC_STATS] This report was processed by statistics service: {0}'.format(str(feedback_dict['report'])))
     if feedback_dict.get('err_msg', None):
-        application.logger.warning('This report couldnt be processed by statistics service: {0}'.format(str(feedback_dict['report'])))
+        application.logger.warning('[ERR_STATS] This report couldnt be processed by statistics service: {0}'.format(str(feedback_dict['report'])))
+        application.logger.warning('[ERR_STATS] Message: {0}'.format(str(feedback_dict['err_msg'])))
 
 def callback(ch, method, properties, body):
     feedback_stats(json.loads(body))
