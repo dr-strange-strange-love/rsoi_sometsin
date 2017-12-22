@@ -359,6 +359,10 @@ def refresh_token(client_id, refresh_token):
 @application.route('/admin/stats/user_login', methods = ['GET'])
 @jwt_required
 def user_login():
+    from_date = request.args.get('from_date')
+    if not from_date:
+        from_date = '1900-00-00'
+
     if not check_role(get_jwt_identity(), 'admin'):
         return jsonify({'err_msg': 'admin resource, access denied'}), 400
 
@@ -369,7 +373,7 @@ def user_login():
     print(user_tokens)
 
     url = 'http://127.0.0.1:8005/admin/stats/user_login'
-    prms = {}
+    prms = {'from_date': from_date}
     hdrs = {
         'accept': 'application/json',
         'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))

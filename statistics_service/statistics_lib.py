@@ -20,8 +20,8 @@ def push_event(job, status, user, time, msg_json=None, status_code=None, url=Non
         'payload': payload
     })
 
-def get_user_login_data():
-    return statistics_db.search(Stats.job == 'user login')
+def get_user_login_data(from_date='1900-00-00'):
+    return statistics_db.search((Stats.job == 'user login') & (Stats.time >= from_date))
 
 def get_user_bill_update_data():
     return statistics_db.search(Stats.job == 'bill update')

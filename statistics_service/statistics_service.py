@@ -164,7 +164,11 @@ def report():
 
 @application.route('/admin/stats/user_login', methods = ['GET'])
 def user_login():
-    user_login = statistics_lib.get_user_login_data()
+    from_date = request.args.get('from_date')
+    if not from_date:
+        from_date = '1900-00-00'
+
+    user_login = statistics_lib.get_user_login_data(from_date=from_date)
     return jsonify(user_login), 200
 
 @application.route('/admin/stats/user_bill_update', methods = ['GET'])
