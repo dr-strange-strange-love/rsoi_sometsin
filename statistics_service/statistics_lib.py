@@ -23,7 +23,7 @@ def push_event(job, status, user, time, msg_json=None, status_code=None, url=Non
 def get_user_login_data(from_date='1900-00-00'):
     return statistics_db.search((Stats.job == 'user login') & (Stats.time >= from_date))
 
-def get_user_bill_update_data():
+def get_user_bill_update_data(from_date='1900-00-00'):
     return statistics_db.search((Stats.job == 'bill update') & (Stats.time >= from_date))
 
 def get_ops_status():

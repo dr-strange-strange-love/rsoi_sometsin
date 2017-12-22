@@ -387,7 +387,7 @@ def user_login():
 
     if request_wants_json():
         return jsonify(user_login), 200
-    return render_template('user_login_attempts.html', prms = user_login)
+    return render_template('user_login_attempts.html', prms = user_login, from_date = from_date)
 
 @application.route('/admin/stats/user_login/fig')
 @jwt_required
@@ -908,7 +908,7 @@ def delete_goods_from_order(user_id, order_id):
         'url': 'http://127.0.0.1:8003/billing/' + str(billing_id),
         'method': 'PATCH',
         'payload': {'total': 0},
-        'headers': {'Authorization': 'JWT {0}'.format(user_tokens.get('billing_service', 'invalid_token'))},
+        'headers': {},
         'job': 'bill update',
         'status': 'success',
         'user': get_jwt_identity(),
@@ -916,7 +916,7 @@ def delete_goods_from_order(user_id, order_id):
         'hash': hash_val
     }
     try:
-        r = requests.patch(url, json = prms, timeout = 5)
+        r = requests.patch(url, json = prms, headers = hdrs, timeout = 5)
         if r.status_code == 401:
             send_dict['status_code'] = 401
             raise TokenError('billing token invalid')            
