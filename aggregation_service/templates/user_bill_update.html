@@ -29,11 +29,13 @@ th {
 
     <script type="text/javascript">
         var prmsj = {{ prms|tojson }};
+        var prms2j = {{ prms2|tojson }};
 
         document.getElementById("title").innerHTML = "<table style='width:96%', align='center', border=0><th>Users' bill updates</th></table>";
         document.getElementById("plot").innerHTML = "<table style='width:96%', align='center', border=0>" +
         "<th style='text-align:center;background-color:white;'>" +
-        "<img src='/admin/stats/user_bill_update/fig' alt='Plot placeholder' height='500'></th></table>";
+        "<img src='/admin/stats/user_bill_update/fig?from_date=" + str(prms2j.from_date) +
+        "' alt='Plot placeholder' height='500'></th></table>";
 
         var out = "<table style='width:96%', align='center', border=1>" +
         "<colgroup><col style='width:10%'><col style='width:20%'><col style='width:20%'>" +

@@ -387,7 +387,7 @@ def user_login():
 
     if request_wants_json():
         return jsonify(user_login), 200
-    return render_template('user_login_attempts.html', prms = user_login, from_date = from_date)
+    return render_template('user_login_attempts.html', prms = user_login, prms2 = {'from_date': from_date})
 
 @application.route('/admin/stats/user_login/fig')
 @jwt_required
@@ -481,7 +481,7 @@ def user_bill_update():
 
     if request_wants_json():
         return jsonify(user_bill_update), 200
-    return render_template('user_bill_update.html', prms = user_bill_update)
+    return render_template('user_bill_update.html', prms = user_bill_update, prms2 = {'from_date': from_date})
 
 @application.route('/admin/stats/user_bill_update/fig', methods = ['GET'])
 @jwt_required
