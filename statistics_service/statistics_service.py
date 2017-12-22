@@ -173,7 +173,11 @@ def user_login():
 
 @application.route('/admin/stats/user_bill_update', methods = ['GET'])
 def user_bill_update():
-    user_bill_update = statistics_lib.get_user_bill_update_data()
+    from_date = request.args.get('from_date')
+    if not from_date:
+        from_date = '1900-00-00'
+    
+    user_bill_update = statistics_lib.get_user_bill_update_data(from_date=from_date)
     return jsonify(user_bill_update), 200
 
 @application.route('/admin/stats/ops_status', methods = ['GET'])

@@ -49,8 +49,10 @@ rds = redis.Redis('127.0.0.1', db=1) # for stats
 
 thread = Thread(target = aggregation_lib.reset_billing_total_queue)
 thread.start()
+'''
 thread = Thread(target = aggregation_lib.statistics_queue_async)
 thread.start()
+'''
 
 connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
 channel = connection.channel()
@@ -390,6 +392,10 @@ def user_login():
 @application.route('/admin/stats/user_login/fig')
 @jwt_required
 def user_login_fig():
+    from_date = request.args.get('from_date')
+    if not from_date:
+        from_date = '1900-00-00'
+
     # get user tokens
     url = 'http://127.0.0.1:8004/user/{0}/tokens'.format(get_jwt_identity())
     r = requests.get(url)
@@ -397,7 +403,7 @@ def user_login_fig():
     print(user_tokens)
 
     url = 'http://127.0.0.1:8005/admin/stats/user_login'
-    prms = {}
+    prms = {'from_date': from_date}
     hdrs = {
         'accept': 'application/json',
         'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))
@@ -449,6 +455,10 @@ def user_login_fig():
 @application.route('/admin/stats/user_bill_update', methods = ['GET'])
 @jwt_required
 def user_bill_update():
+    from_date = request.args.get('from_date')
+    if not from_date:
+        from_date = '1900-00-00'
+
     if not check_role(get_jwt_identity(), 'admin'):
         return jsonify({'err_msg': 'admin resource, access denied'}), 400
 
@@ -459,7 +469,7 @@ def user_bill_update():
     print(user_tokens)
 
     url = 'http://127.0.0.1:8005/admin/stats/user_bill_update'
-    prms = {}
+    prms = {'from_date': from_date}
     hdrs = {
         'accept': 'application/json',
         'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))
@@ -476,6 +486,10 @@ def user_bill_update():
 @application.route('/admin/stats/user_bill_update/fig', methods = ['GET'])
 @jwt_required
 def user_bill_update_fig():
+    from_date = request.args.get('from_date')
+    if not from_date:
+        from_date = '1900-00-00'
+
     # get user tokens
     url = 'http://127.0.0.1:8004/user/{0}/tokens'.format(get_jwt_identity())
     r = requests.get(url)
@@ -483,7 +497,7 @@ def user_bill_update_fig():
     print(user_tokens)
 
     url = 'http://127.0.0.1:8005/admin/stats/user_bill_update'
-    prms = {}
+    prms = {'from_date': from_date}
     hdrs = {
         'accept': 'application/json',
         'Authorization': 'JWT {0}'.format(user_tokens.get('statistics_service', 'invalid_token'))
@@ -836,6 +850,7 @@ def delete_goods_from_order(user_id, order_id):
     print(r.text)
 
     # step.3 - reduce goods to [] (DELETE/POST to order_db)
+    '''
     aggregation_lib.statistics_q_async.put({
         'url': 'http://127.0.0.1:8002/orders/{0}/goods'.format(order_id),
         'method': 'DELETE',
@@ -850,9 +865,28 @@ def delete_goods_from_order(user_id, order_id):
     url = 'http://127.0.0.1:8002/orders/{0}/goods'.format(order_id)
     r = requests.delete(url, timeout = 10)
     print(r.text)
-    '''
+    # sending reduce goods stats
+    hash_val = '%032x' % random.getrandbits(128)
+    send_dict = {
+        'url': 'http://127.0.0.1:8002/orders/{0}/goods'.format(order_id),
+        'method': 'DELETE',
+        'payload': {},
+        'headers': {},
+        'job': 'goods removal',
+        'status': 'success',
+        'user': get_jwt_identity(),
+        'time': str(datetime.utcnow()),
+        'hash': hash_val
+    }
+    set_value(rds, 'sent_' + hash_val, send_dict)
+    channel.basic_publish(
+        exchange='',
+        routing_key='rsoi_stats_sender',
+        body=json.dumps(send_dict)
+    )
 
     # step.4 - update bill (PATCH to billing_db)
+    '''
     aggregation_lib.statistics_q_async.put({
         'url': 'http://127.0.0.1:8003/billing/' + str(billing_id),
         'method': 'PATCH',
@@ -868,13 +902,34 @@ def delete_goods_from_order(user_id, order_id):
     payload = {'total': 0}
     prms = json.dumps(payload)
     hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('billing_service', 'invalid_token'))}
+    # sending update bill stats
+    hash_val = '%032x' % random.getrandbits(128)
+    send_dict = {
+        'url': 'http://127.0.0.1:8003/billing/' + str(billing_id),
+        'method': 'PATCH',
+        'payload': {'total': 0},
+        'headers': {'Authorization': 'JWT {0}'.format(user_tokens.get('billing_service', 'invalid_token'))},
+        'job': 'bill update',
+        'status': 'success',
+        'user': get_jwt_identity(),
+        'time': str(datetime.utcnow()),
+        'hash': hash_val
+    }
     try:
         r = requests.patch(url, json = prms, timeout = 5)
         if r.status_code == 401:
-            raise TokenError('billing token invalid')
+            send_dict['status_code'] = 401
+            raise TokenError('billing token invalid')            
     except (ReadTimeout, TokenError) as err:
+        send_dict['status'] = 'failure'
         aggregation_lib.reset_billing_total_q.put(url)
-    '''
+    finally:
+        set_value(rds, 'sent_' + hash_val, send_dict)
+        channel.basic_publish(
+            exchange='',
+            routing_key='rsoi_stats_sender',
+            body=json.dumps(send_dict)
+        )
 
     return jsonify({'succ_msg': 'Goods are being removerd, check logs!'}), 200
 
@@ -913,6 +968,7 @@ def perform_billing(user_id, order_id):
         return jsonify(user_order), 400
 
     # step.2 - update bill (PATCH to billing_db)
+    '''
     aggregation_lib.statistics_q_async.put({
         'url': 'http://127.0.0.1:8003/billing/' + str(billing_id),
         'method': 'PATCH',
@@ -928,16 +984,38 @@ def perform_billing(user_id, order_id):
     payload = billing_dict
     prms = json.dumps(payload)
     hdrs = {'Authorization': 'JWT {0}'.format(user_tokens.get('billing_service', 'invalid_token'))}
+    # sending update bill stats
+    hash_val = '%032x' % random.getrandbits(128)
+    send_dict = {
+        'url': 'http://127.0.0.1:8003/billing/' + str(billing_id),
+        'method': 'PATCH',
+        'payload': billing_dict,
+        'headers': {'Authorization': 'JWT {0}'.format(user_tokens.get('billing_service', 'invalid_token'))},
+        'job': 'bill update',
+        'status': 'success',
+        'user': get_jwt_identity(),
+        'time': str(datetime.utcnow()),
+        'hash': hash_val
+    }
     try:
         r = requests.patch(url, json = prms, headers = hdrs, timeout = 10)
         if r.status_code == 401:
+            send_dict['status_code'] = 401
             raise TokenError('billing token invalid')
     except (OSError, ReadTimeout) as err:
+        send_dict['status'] = 'timeouted'
         jsonify({'err_msg': 'server unavailable!'}), 503
     except TokenError as err:
+        send_dict['status'] = 'failure'
         return jsonify({'err_msg': 'billing service token invalid...'}), 401
+    finally:
+        set_value(rds, 'sent_' + hash_val, send_dict)
+        channel.basic_publish(
+            exchange='',
+            routing_key='rsoi_stats_sender',
+            body=json.dumps(send_dict)
+        )
     res = r.json()
-    '''
 
     return jsonify({'succ_msh': 'bill is being updated, check logs...'}), 200
 ''' --------------- --------------- '''
