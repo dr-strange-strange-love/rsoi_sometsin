@@ -990,7 +990,7 @@ def perform_billing(user_id, order_id):
         'url': 'http://127.0.0.1:8003/billing/' + str(billing_id),
         'method': 'PATCH',
         'payload': billing_dict,
-        'headers': {'Authorization': 'JWT {0}'.format(user_tokens.get('billing_service', 'invalid_token'))},
+        'headers': {},
         'job': 'bill update',
         'status': 'success',
         'user': get_jwt_identity(),
