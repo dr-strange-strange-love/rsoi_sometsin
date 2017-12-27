@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<style>
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th, td {
+    text-align: left;
+    padding: 6px;
+}
+
+tr:nth-child(even){background-color: #f2f2f2}
+
+th {
+    background-color: #0678a8;
+    color: white;
+}
+</style>
+
+<body>
+    <div id="title"></div>
+    <br>
+    <div id="plot"></div>
+    <br>
+    <div id="table"></div>
+
+
+    <script type="text/javascript">
+        var prmsj = {{ prms|tojson }};
+        var prms2j = {{ prms2|tojson }};
+
+        document.getElementById("title").innerHTML = "<table style='width:96%', align='center', border=0><th>Users' bill updates</th></table>";
+        document.getElementById("plot").innerHTML = "<table style='width:96%', align='center', border=0>" +
+        "<th style='text-align:center;background-color:white;'>" +
+        "<img src='/admin/stats/user_bill_update/fig?from_date=" + prms2j.from_date +
+        "' alt='Plot placeholder' height='500'></th></table>";
+
+        var out = "<table style='width:96%', align='center', border=1>" +
+        "<colgroup><col style='width:10%'><col style='width:20%'><col style='width:20%'>" +
+        "<col style='width:10%'><col style='width:10%'><col style='width:30%'></colgroup><tbody>" + 
+        "<tr><th>User</th><th>Payload</th><th>Url</th><th>Status</th><th>Status code</th><th>Time</th></tr>";
+        for(i = 0; i < prmsj.length; i++) {
+            out += "<tr><td>" + prmsj[i].user + "</td><td>" + JSON.stringify(prmsj[i].payload) + "</td><td>" + prmsj[i].url + "</td>" +
+            "<td>" + prmsj[i].status + "</td><td>" + prmsj[i].status_code + "</td><td>" + prmsj[i].time + "</td></tr>";
+        }
+        out += "</tbody></table>";
+        document.getElementById("table").innerHTML = out;
+    </script>
+</body>
+</html>

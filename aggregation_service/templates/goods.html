@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<style>
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th, td {
+    text-align: left;
+    padding: 6px;
+}
+
+tr:nth-child(even){background-color: #f2f2f2}
+
+th {
+    background-color: #0678a8;
+    color: white;
+}
+</style>
+
+<body>
+    <div id="title"></div>
+    <br>
+    <div id="table"></div>
+
+    <script type="text/javascript">
+        var prmsj = {{ prms|tojson }};
+
+        document.getElementById("title").innerHTML = "<table style='width:96%', align='center', border=0><th>Goods in stock</th></table>"
+
+        var out = "<table style='width:96%', align='center', border=1>" +
+        "<colgroup><col style='width:25%'><col style='width:75%'></colgroup><tbody>" + 
+        "<tr><th>ID</th><th>Title</th></tr>";
+        for(i = 0; i < prmsj.length; i++) {
+            out += "<tr><td>" + prmsj[i].id + "</td><td>" + prmsj[i].title + "</td></tr>";
+        }
+        out += "</tbody></table>";
+        document.getElementById("table").innerHTML = out;
+    </script>
+</body>
+</html>

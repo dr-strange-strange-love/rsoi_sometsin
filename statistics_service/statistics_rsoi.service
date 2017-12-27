@@ -1,0 +1,13 @@
+[Unit]
+Description=Gunicorn instance to serve rsoi_statistics_service
+After=network.target
+
+[Service]
+User=root
+Group=nginx
+WorkingDirectory=/srv/www/rsoi_services/statistics_service
+Environment="PATH=/root/anaconda3/envs/rsoi_env_36/bin"
+ExecStart=/root/anaconda3/envs/rsoi_env_36/bin/gunicorn --workers 2 --timeout 120 --bind 127.0.0.1:8005 wsgi --preload
+
+[Install]
+WantedBy=multi-user.target

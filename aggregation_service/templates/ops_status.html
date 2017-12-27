@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<style>
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th, td {
+    text-align: left;
+    padding: 6px;
+}
+
+tr:nth-child(even){background-color: #f2f2f2}
+
+th {
+    background-color: #0678a8;
+    color: white;
+}
+</style>
+
+<body>
+    <div id="title"></div>
+    <br>
+    <div id="plot"></div>
+    <br>
+    <div id="table"></div>
+
+
+    <script type="text/javascript">
+        var prmsj = {{ prms|tojson }};
+        var keys = Object.keys(prmsj)
+
+        document.getElementById("title").innerHTML = "<table style='width:96%', align='center', border=0><th>Ops report</th></table>";
+        document.getElementById("plot").innerHTML = "<table style='width:96%', align='center', border=0>" +
+        "<th style='text-align:center;background-color:white;'>" +
+        "<img src='/admin/stats/ops_status/fig' alt='Plot placeholder' height='500'></th></table>";
+
+        var out = "<table style='width:96%', align='center', border=1>" +
+        "<colgroup><col style='width:20%'><col style='width:15%'><col style='width:15%'>" +
+        "<col style='width:15%'><col style='width:15%'><col style='width:20%'></colgroup><tbody>" + 
+        "<tr><th>Operation</th><th>Success</th><th>Failure</th><th>Timeout</th><th>Total</th><th>Success rate</th></tr>";
+        for(i = 0; i < keys.length; i++) {
+            var key = keys[i];
+            var ratio = (prmsj[key].success / prmsj[key].total);
+            out += "<tr><td>" + key + "</td><td>" + prmsj[key].success + "</td><td>" + prmsj[key].failure + "</td>" +
+            "<td>" + prmsj[key].timedout + "</td><td>" + prmsj[key].total + "</td><td>" + ratio + "</td></tr>";
+        }
+        out += "</tbody></table>";
+        document.getElementById("table").innerHTML = out;
+    </script>
+</body>
+</html>
